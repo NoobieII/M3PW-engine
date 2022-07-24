@@ -1,0 +1,7 @@
+Lithio / Ryan's collection of container classes for use in C.
+
+April 28, 2022
+
+I would like to see this as a substitute for the container classes that I use from the standard library in C++.
+
+This library also serves as revision for data structures and algorithms.
