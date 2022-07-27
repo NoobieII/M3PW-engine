@@ -14,10 +14,10 @@
 #include "textbox.h"
 
 //Linux
-//gcc -I/usr/include/SDL2 *.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -msse -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_net -lGL -lGLU -lGLEW -lm -o editor1
+//gcc -I/usr/include/SDL2 cursor.c editor1.c textbox.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -msse -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_net -lGL -lGLU -lGLEW -lm -o editor1
 
 //Windows
-//gcc -IC:/msys64/mingw32/include/SDL2 *.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -m32 -msse -lmingw32 -lSDL2main -lSDL2.dll -lSDL2_image.dll -lSDL2_ttf.dll -lSDL2_net.dll -lws2_32 -lopengl32 -lglu32 -lglew32 -lglew32s -o editor1 -static
+//gcc -IC:/msys64/mingw32/include/SDL2 cursor.c editor1.c textbox.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -m32 -msse -lmingw32 -lSDL2main -lSDL2.dll -lSDL2_image.dll -lSDL2_ttf.dll -lSDL2_net.dll -lws2_32 -lopengl32 -lglu32 -lglew32 -lglew32s -o editor1 -static
 
 //state: 3d view: move camera angle, select textbox, select vertex, apply transforms
 //state: menu with options: add polygon, save file, load file
@@ -263,58 +263,6 @@ int ui_save_file(UI *ui){
 		return -1;
 	};
 	
-	/*
-	//don't actually count the vertices, but check the shapes
-	int vertex = 0;
-	int index = 0;
-	int polygon_size = 2;
-	
-	out = fopen(textbox_get_str(&ui->textbox_save_file), "wt");
-	if(!out){
-		return -1;
-	}
-	
-	ui_revert_current_color(ui);
-	
-	while(index < ui->r->index_count){
-		//it's part of the shape
-		if(ui->r->indices[index] == vertex){
-			index += 3;
-			polygon_size++;
-		}
-		else{
-			//save the shape to file
-			//number of sides
-			fprintf(out, "%d\n", polygon_size);
-			
-			//TODO: calculate normal
-			pwrenderable_get_vertex(ui->r, vertex, &v0, NULL, NULL, NULL);
-			pwrenderable_get_vertex(ui->r, vertex + 1, &v1, NULL, NULL, NULL);
-			pwrenderable_get_vertex(ui->r, vertex + 2, &v2, NULL, NULL, NULL);
-			normal = PWM_normalize3(PWM_cross3(PWM_sub3(v1, v0), PWM_sub3(v2, v0)));
-			
-			for(i = 0; i < polygon_size; ++i){
-				pwrenderable_get_vertex(ui->r, vertex + i, &position, &uv, &color, NULL);
-				fprintf(out, "position %f %f %f uv %f %f color %x normal %f %f %f\n", position.x, position.y, position.z, uv.x, uv.y, color, normal.x, normal.y, normal.z);
-			}
-			fprintf(out, "\n");
-			
-			vertex += polygon_size;
-			polygon_size = 2;
-		}
-	}
-	//save the last shape to file
-	fprintf(out, "%d\n", polygon_size);
-	for(i = 0; i < polygon_size; ++i){
-		pwrenderable_get_vertex(ui->r, vertex + i, &position, &uv, &color, &normal);
-		
-		//TODO: calculate normal
-		fprintf(out, "position %f %f %f uv %f %f color %x normal %f %f %f\n", position.x, position.y, position.z, uv.x, uv.y, color, normal.x, normal.y, normal.z);
-	}
-	fprintf(out, "\n");
-	
-	fclose(out);
-	*/
 	return 0;
 }
 
@@ -351,27 +299,16 @@ int ui_load_file(UI *ui){
 	int vertex = 0;
 	int polygon_size = 0;
 	
-	in = fopen(textbox_get_str(&ui->textbox_load_file), "rt");
-	if(!in){
+	if(pwrenderable_load(ui->r, textbox_get_str(&ui->textbox_load_file)) == -1){
 		return -1;
 	}
 	
-	pwrenderable_close(ui->r);
-	pwrenderable_init_none(ui->r);
-	
-	while(1){
-		fscanf(in, "%d", &polygon_size);
-		if(feof(in)){
-			break;
-		}
-		pwrenderable_add(ui->r, polygon_size);
-		
-		//read the vertices
-		for(i = 0; i < polygon_size; ++i){
-			fscanf(in, "%*s %f%f%f %*s %f%f %*s %x %*s %f%f%f", &position.x, &position.y, &position.z, &uv.x, &uv.y, &color, &normal.x, &normal.y, &normal.z);
-			pwrenderable_edit_vertex(ui->r, vertex + i, position, uv, color, normal);
-		}
-		vertex += i;
+	vertex = ui->r->vertex_count;
+	polygon_size = 3;
+	i = ui->r->index_count - 3;
+	while(i > 0 && ui->r->indices[i - 3] == ui->r->indices[ui->r->index_count - 3]){
+		i -= 3;
+		polygon_size++;
 	}
 	
 	//initialize state variables
@@ -389,8 +326,8 @@ int ui_load_file(UI *ui){
 		ui->transform_all = 0;
 	}
 	else{
-		ui->vertex_current = vertex - 1;  //currently selected vertex
-		ui->vertex_current_color = color; //color of currently selected vertex
+		ui->vertex_current = ui->r->vertex_count - 1;  //currently selected vertex
+		ui->vertex_current_color = ui->r->color[ui->vertex_current]; //color of currently selected vertex
 		ui->polygon_size = polygon_size;
 		ui->vertex_begin = vertex - polygon_size;    //index number of the first vertex in the polygon
 		
@@ -731,14 +668,14 @@ void ui_handle_input(UI *ui, PWEngine *e){
 				//set the position for all vertices or just current shape
 				ui_revert_current_color(ui);
 				if(ui->transform_all){
-					for(i = 0; i < ui->vertex_begin + ui->polygon_size; ++i){
-						pwrenderable_get_vertex(ui->r, i, &position, &uv, &color, &normal);
-						
-						position = PWM_mul_vec3(rotation_matrix, position);
-						position = PWM_mul_vec3(translation_matrix, position);
-						position = PWM_mul_vec3(scale_matrix, position);
-						
-						pwrenderable_edit_vertex(ui->r, i, position, uv, color, normal);
+					pwrenderable_transform(ui->r, rotation_matrix);
+					pwrenderable_transform(ui->r, translation_matrix);
+					pwrenderable_transform(ui->r, scale_matrix);
+					
+					//reverse direction of vertices
+					if(scale.x < 0.0 || scale.y < 0.0 || scale.z < 0.0){
+						printf("reversing the renderable\n");
+						pwrenderable_reverse_vertex(ui->r);
 					}
 				}
 				else{
@@ -948,7 +885,7 @@ void ui_handle_input(UI *ui, PWEngine *e){
 			ui->textbox_focus = NULL;
 		}
 		if(pwengine_is_key_pressed(e, "Return")){
-			//TODO load a texture from the engine
+			//load a texture from the engine
 			texture = pwengine_get_texture(e, textbox_get_str(&ui->textbox_load_texture));
 			if(texture){
 				pwrenderable_set_texture(ui->r, texture);

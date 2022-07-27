@@ -469,7 +469,36 @@ void pwrenderable_add(PWRenderable *r, int n){
 	}
 	r->vertex_count += n;
 }
+
+void pwrenderable_add_r(PWRenderable *r, const PWRenderable *src){
+	int n;
+	int i;
+	n = r->vertex_count + src->vertex_count;
 	
+	if(!src || src->index_count < 1){
+		return;
+	}
+	
+	//copy vertices
+	r->p = (PWVec3*) realloc(r->p, sizeof(PWVec3) * n);
+	memcpy(&r->p[r->vertex_count], src->p, sizeof(PWVec3) * src->vertex_count);
+	r->uv = (PWVec2*) realloc(r->uv, sizeof(PWVec2) * n);
+	memcpy(&r->uv[r->vertex_count], src->uv, sizeof(PWVec2) * src->vertex_count);
+	r->color = (unsigned int*) realloc(r->color, sizeof(unsigned int) * n);
+	memcpy(&r->color[r->vertex_count], src->color, sizeof(unsigned int) * src->vertex_count);
+	r->n = (PWVec3*) realloc(r->n, sizeof(PWVec3) * n);
+	memcpy(&r->n[r->vertex_count], src->n, sizeof(PWVec3) * src->vertex_count);
+	
+	//copy indices and add vertex count to source indices
+	n = r->index_count + src->index_count;
+	r->indices = (unsigned short*) realloc(r->indices, sizeof(unsigned short) * n);
+	for(i = 0; i < src->index_count; ++i){
+		r->indices[r->index_count + i] = src->indices[i] + r->vertex_count;
+	}
+	
+	r->vertex_count += src->vertex_count;
+	r->index_count += src->index_count;
+}
 
 void pwrenderable_get_vertex(PWRenderable *r, int n, PWVec3 *position, PWVec2 *uv, unsigned int *color, PWVec3 *normal){
 	if(n < 0 || n >= r->vertex_count){
@@ -500,6 +529,85 @@ void pwrenderable_edit_vertex(PWRenderable *r, int n, PWVec3 position, PWVec2 uv
 	r->n[n] = normal;
 }
 
+void pwrenderable_transform(PWRenderable *r, PWMat4 m){
+	int i;
+	//transform the vertices and normals
+	for(i = 0; i < r->vertex_count; ++i){
+		r->p[i] = PWM_mul_vec3(m, r->p[i]);
+		r->n[i] = PWM_mul_vec3_notranslate(m, r->n[i]);
+	}
+}
+
+void pwrenderable_reverse_vertex(PWRenderable *r){
+	int i;
+	int j;
+	int tmp;
+	int polygon_size;
+	int vertex;
+	PWVec2 v2;
+	PWVec3 v3;
+	unsigned int u;
+	
+	if(r->vertex_count < 1){
+		return;
+	}
+	
+	i = 3;
+	tmp = r->indices[0];
+	polygon_size = 3;
+	vertex = 0;
+	do{
+		//check if the index is the same, if so, add to the 
+		if(i >= r->index_count || tmp != r->indices[i]){
+			//reverse order of the polygon
+			//012->021, 0123->0321, etc
+			for(j = 1; j < (polygon_size + 1) / 2; ++j){
+				//replace position
+				v3 = r->p[vertex + j];
+				r->p[vertex + j] = r->p[vertex + polygon_size - j];
+				r->p[vertex + polygon_size - j] = v3;
+				
+				//replace uv
+				v2 = r->uv[vertex + j];
+				r->uv[vertex + j] = r->uv[vertex + polygon_size - j];
+				r->uv[vertex + polygon_size - j] = v2;
+				
+				//replace color
+				u = r->color[vertex + j];
+				r->color[vertex + j] = r->color[vertex + polygon_size - j];
+				r->color[vertex + polygon_size - j] = u;
+				
+				//replace normal
+				v3 = r->n[vertex + j];
+				r->n[vertex + j] = r->n[vertex + polygon_size - j];
+				r->n[vertex + polygon_size - j] = v3;
+			}
+			vertex += polygon_size;
+			
+			if(i < r->index_count){
+				tmp = r->indices[i];
+				polygon_size = 3;
+			}
+		}
+		else{
+			polygon_size++;
+		}
+		
+		i += 3;
+	} while(vertex < r->vertex_count);
+}
+
+void pwrenderable_reverse_index(PWRenderable *r){
+	int i;
+	unsigned short tmp;
+	
+	for(i = 0; i < r->index_count; i += 3){
+		tmp = r->indices[i + 1];
+		r->indices[i + 1] = r->indices[i + 2];
+		r->indices[i + 2] = tmp;
+	}
+}
+
 int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_normals){
 	PWVec3 position;
 	PWVec2 uv;
@@ -517,6 +625,9 @@ int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_nor
 	if(!out){
 		return -1;
 	}
+	
+	//this indicates a more human readable form
+	fprintf(out, "PWR0\n\n");
 	
 	while(index < r->index_count){
 		//it's part of the shape
@@ -571,11 +682,35 @@ int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_nor
 	return 0;
 }
 
+int pwrenderable_save2(PWRenderable *r, const char *filename){
+	int i;
+	FILE *out;
+	
+	out = fopen(filename, "wt");
+	if(!out){
+		return -1;
+	}
+	
+	fprintf(out, "PWR1\n\nVERTICES %d\n", r->vertex_count);
+	for(i = 0; i < r->vertex_count; ++i){
+		fprintf(out, "%d position %f %f %f uv %f %f color %x normal %f %f %f\n", i, r->p[i].x, r->p[i].y, r->p[i].z, r->uv[i].x, r->uv[i].y, r->color[i], r->n[i].x, r->n[i].y, r->n[i].z);
+	}
+	
+	fprintf(out, "\nINDICES %d\n", r->index_count);
+	for(i = 0; i < r->index_count; i += 3){
+		fprintf(out, "%d %d %d\n", r->indices[i], r->indices[i+1], r->indices[i+2]);
+	}
+	fclose(out);
+	return 0;
+}
+		
+
 int pwrenderable_load(PWRenderable *r, const char *filename){
 	PWVec3 position;
 	PWVec2 uv;
 	unsigned int color;
 	PWVec3 normal;
+	char str[16];
 	FILE *in;
 	int i;
 	
@@ -588,25 +723,57 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 		return -1;
 	}
 	
-	pwrenderable_close(r);
 	pwrenderable_init_none(r);
 	
-	while(1){
-		fscanf(in, "%d", &polygon_size);
-		if(feof(in)){
-			break;
+	fgets(str, 16, in);
+	if(strcmp(str, "PWR0\n") == 0){
+		while(1){
+			fscanf(in, "%d", &polygon_size);
+			if(feof(in)){
+				break;
+			}
+			pwrenderable_add(r, polygon_size);
+			
+			//read the vertices
+			for(i = 0; i < polygon_size; ++i){
+				fscanf(in, "%*s %f%f%f %*s %f%f %*s %x %*s %f%f%f", &position.x, &position.y, &position.z, &uv.x, &uv.y, &color, &normal.x, &normal.y, &normal.z);
+				r->p[vertex + i] = position;
+				r->uv[vertex + i] = uv;
+				r->color[vertex + i] = color;
+				r->n[vertex + i] = normal;
+			}
+			vertex += i;
 		}
-		pwrenderable_add(r, polygon_size);
+	}
+	else if(strcmp(str, "PWR1\n") == 0){
+		fscanf(in, "%*s %d", &r->vertex_count); //expect VERTICES <vertex_count>
+		printf("reading %d vertices\n", r->vertex_count);
+		//expect <vertex number> <vertex data>
+		r->p = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
+		r->uv = (PWVec2*) malloc(sizeof(PWVec2) * r->vertex_count);
+		r->color = (unsigned int*) malloc(sizeof(unsigned int) * r->vertex_count);
+		r->n = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
 		
-		//read the vertices
-		for(i = 0; i < polygon_size; ++i){
-			fscanf(in, "%*s %f%f%f %*s %f%f %*s %x %*s %f%f%f", &position.x, &position.y, &position.z, &uv.x, &uv.y, &color, &normal.x, &normal.y, &normal.z);
-			r->p[vertex + i] = position;
-			r->uv[vertex + i] = uv;
-			r->color[vertex + i] = color;
-			r->n[vertex + i] = normal;
+		for(i = 0; i < r->vertex_count; ++i){
+			fscanf(in, "%*d %*s %f%f%f %*s %f%f %*s %x %*s %f%f%f", &position.x, &position.y, &position.z, &uv.x, &uv.y, &color, &normal.x, &normal.y, &normal.z);
+			r->p[i] = position;
+			r->uv[i] = uv;
+			r->color[i] = color;
+			r->n[i] = normal;
 		}
-		vertex += i;
+		
+		fscanf(in, "%*s %d", &r->index_count); //expect INDICES <index_count>
+		r->indices = (unsigned short*) malloc(sizeof(unsigned short) * r->index_count);
+		
+		for(i = 0; i < r->index_count; ++i){
+			fscanf(in, "%d", &vertex); //we need to use an int type with fscanf
+			r->indices[i] = vertex;
+			printf("%d", vertex);
+		}
+	}
+	else{
+		fclose(in);
+		return -1;
 	}
 	
 	fclose(in);

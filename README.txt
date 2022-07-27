@@ -14,7 +14,10 @@ The engine is a work in progress. Much of it was originally written in June 2022
 
 Installation Instructions
 
-Windows: The following are needed:
+Windows:
+The 32-bit EXE is already available if you only want to run the program.
+
+The following are needed if you want to build the application yourself:
 SDL2
 SDL2 Image
 SDL2 TTF

@@ -65,12 +65,21 @@ void pwrenderable_init_none(PWRenderable *r);
 //add an n-sided shape (normal facing the z direction)
 void pwrenderable_add(PWRenderable *r, int n);
 
-//add everything contained in the renderable src
+//add everything contained in the renderable src - if src is empty, nothing
+//is changed in r
 void pwrenderable_add_r(PWRenderable *r, const PWRenderable *src);
 
 void pwrenderable_get_vertex(PWRenderable *r, int n, PWVec3 *position, PWVec2 *uv, unsigned int *color, PWVec3 *normal);
 //edit vertex n... bounds checking is done in the function
 void pwrenderable_edit_vertex(PWRenderable *r, int n, PWVec3 position, PWVec2 uv, unsigned int color, PWVec3 normal);
+
+//transform all vertex positions
+void pwrenderable_transform(PWRenderable *r, PWMat4 m);
+
+//reorders vertices or...
+//reorder indices from 012 to 021, useful when the renderable is mirrored
+void pwrenderable_reverse_vertex(PWRenderable *r);
+void pwrenderable_reverse_index(PWRenderable *r);
 
 //remove all vertices, but don't close the renderable
 void pwrenderable_reset(PWRenderable *r);
@@ -78,6 +87,9 @@ void pwrenderable_reset(PWRenderable *r);
 //save the renderable to a file, returns 0 if successful, -1 if not
 //if recalculating normals (flat faces), send nonzero value
 int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_normals);
+
+//save with index numbers (needed when faces reuse vertices from other faces)
+int pwrenderable_save2(PWRenderable *r, const char *filename);
 
 //load a renderable to a file, returns 0 if successful, -1 if not
 int pwrenderable_load(PWRenderable *r, const char *filename);
