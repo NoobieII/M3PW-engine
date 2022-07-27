@@ -10,7 +10,7 @@ Image Loading
 Sound Loading (OGG Vorbis)
 TCP Client Networking
 
-The engine is a work in progress. Much of it was originally written in June 2022.
+Included is a sample program for editing 3D objects. The engine is a work in progress. Much of it was originally written in June 2022.
 
 Installation Instructions
 
