@@ -216,8 +216,10 @@ void ui_update(UI *ui, PWEngine *e){
 	const char *input;
 	char str[16];
 	float f[12];
+	int d[4];
 	PWMat4 proj;
 	PWRenderable r;
+	PWTexture *texture;
 	
 	//handling input
 	switch(ui->state){
@@ -412,12 +414,22 @@ void ui_update(UI *ui, PWEngine *e){
 				result = 0;
 				break;
 			case STATE_LOAD_TEXTURE:
-				//TODO
-				result = 0;
+				//load texture from file
+				texture = pwengine_get_texture(e, textbox_get_str(ui->textbox_focus));
+				if(texture){
+					result = 0;
+					pwrenderable_set_texture(ui->model, texture);
+					pwrenderable_set_texture(ui->current_shape, texture);
+				}
+				else{
+					result = -1;
+				}
 				break;
 			case STATE_EDIT_UV:
-				//TODO
-				result = 0;
+				result = sscanf(textbox_get_str(ui->textbox_focus), "%d %d %d %d", &d[0], &d[1], &d[2], &d[3]);
+				if(result == 4){
+					result = pwrenderable_transform_uv(ui->current_shape, d[0], d[1], d[2], d[3]);
+				}
 				break;
 			}
 			if(result == 0){

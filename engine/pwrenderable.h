@@ -73,8 +73,17 @@ void pwrenderable_get_vertex(PWRenderable *r, int n, PWVec3 *position, PWVec2 *u
 //edit vertex n... bounds checking is done in the function
 void pwrenderable_edit_vertex(PWRenderable *r, int n, PWVec3 position, PWVec2 uv, unsigned int color, PWVec3 normal);
 
-//transform all vertex positions
+//transform all vertex positions and normals
 void pwrenderable_transform(PWRenderable *r, PWMat4 m);
+
+//transform all uv's - returns 0 if successful, -1 if invalid values given
+//size is scaled by the division arguments
+//position in the texture depends on x/y_position
+//
+//Example: pwrenderable_transform_uv(&r, 2, 2, 1, 1);
+//
+//UV's to be positioned on the bottom right on a 2x2 grid
+int pwrenderable_transform_uv(PWRenderable *r, int x_division, int y_division, int x_position, int y_position);
 
 //reorders vertices or...
 //reorder indices from 012 to 021, useful when the renderable is mirrored

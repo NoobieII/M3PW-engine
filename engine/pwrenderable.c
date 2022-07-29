@@ -538,6 +538,31 @@ void pwrenderable_transform(PWRenderable *r, PWMat4 m){
 	}
 }
 
+int pwrenderable_transform_uv(PWRenderable *r, int x_division, int y_division, int x_position, int y_position){
+	int i;
+	
+	//check for power of 2
+	if(x_division < 1 || x_division & (x_division - 1)){
+		return -1;
+	}
+	if(y_division < 1 || y_division & (y_division - 1)){
+		return -1;
+	}
+	if(x_position >= x_division){
+		return -1;
+	}
+	if(y_position >= y_division){
+		return -1;
+	}
+	
+	for(i = 0; i < r->vertex_count; ++i){
+		r->uv[i].x = (r->uv[i].x + x_position) / x_division;
+		r->uv[i].y = (r->uv[i].y + y_position) / y_division;
+	}
+	
+	return 0;
+}
+
 void pwrenderable_reverse_vertex(PWRenderable *r){
 	int i;
 	int j;

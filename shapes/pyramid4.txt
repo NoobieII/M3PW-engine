@@ -1,0 +1,27 @@
+PWR0
+
+4
+position -0.5 0 0.5 uv 0.25 1 color ffffffff normal 0 -1 0
+position -0.5 0 -0.5 uv 0 1 color ffffffff normal 0 -1 0
+position 0.5 0 -0.5 uv 0 0.5 color ffffffff normal 0 -1 0
+position 0.5 0 0.5 uv 0.25 0.5 color ffffffff normal 0 -1 0
+
+3
+position -0.5 0 0.5 uv 0.25 1 color ffffffff normal 0 0.5 0.866025
+position 0.5 0 0.5 uv 0.4375 1 color ffffffff normal 0 0.5 0.866025
+position 0 1 0 uv 0.34375 0 color ffffffff normal 0 0.5 0.866025
+
+3
+position 0.5 0 0.5 uv 0.4375 1 color ffffffff normal 0.866025 0.5 0
+position 0.5 0 -0.5 uv 0.625 1 color ffffffff normal 0.866025 0.5 0
+position 0 1 0 uv 0.53125 0 color ffffffff normal 0.866025 0.5 0
+
+3
+position 0.5 0 -0.5 uv 0.625 1 color ffffffff normal 0 0.5 -0.866025
+position -0.5 0 -0.5 uv 0.8125 1 color ffffffff normal 0 0.5 -0.866025
+position 0 1 0 uv 0.71875 0 color ffffffff normal 0 0.5 -0.866025
+
+3
+position -0.5 0 -0.5 uv 0.8125 1 color ffffffff normal -0.866025 0.5 0
+position -0.5 0 0.5 uv 1 1 color ffffffff normal -0.866025 0.5 0
+position 0 1 0 uv 0.90625 0 color ffffffff normal -0.866025 0.5 0
