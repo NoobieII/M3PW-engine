@@ -23,8 +23,6 @@ typedef struct PWRenderable{
 	PWVec3 *p; //vertex points
 	PWVec2 *uv; //texture coordinates
 	union {
-		//unsigned int color;
-		//unsigned char c[4];
 		unsigned int *color;
 		unsigned char *c;
 	};
@@ -100,8 +98,14 @@ int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_nor
 //save with index numbers (needed when faces reuse vertices from other faces)
 int pwrenderable_save2(PWRenderable *r, const char *filename);
 
+//save using Wavefront .obj format
+int pwrenderable_save_obj(PWRenderable *r, const char *filename);
+
 //load a renderable to a file, returns 0 if successful, -1 if not
 int pwrenderable_load(PWRenderable *r, const char *filename);
+
+//load a file using Wavefront .obj format
+int pwrenderable_load_obj(PWRenderable *r, const char *filename);
 
 unsigned int PW_COLOR(float r, float g, float b, float a);
 

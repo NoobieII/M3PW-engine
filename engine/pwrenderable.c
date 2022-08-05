@@ -804,3 +804,146 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 	fclose(in);
 	return 0;
 }
+
+#define MAX_STR_SIZE 128
+
+int pwrenderable_load_obj(PWRenderable *r, const char *filename){
+	PWVec3 *position;
+	PWVec2 *uv;
+	//unsigned int color;
+	PWVec3 *normal;
+	int num_elements;
+	int size;
+	char str[MAX_STR_SIZE];
+	char *word;
+	FILE *in;
+	int i;
+	
+	int p, t, n;
+	p=t=n=0;
+	
+	in = fopen(filename, "rt");
+	if(!in){
+		return -1;
+	}
+	
+	pwrenderable_init_none(r);
+	
+	size = 100;
+	position = (PWVec3*) malloc(sizeof(PWVec3) * size);
+	uv = (PWVec2*) malloc(sizeof(PWVec2) * size);
+	normal = (PWVec3*) malloc(sizeof(PWVec3) * size);
+	
+	//count the maximum number of vertices there are
+	while(fgets(str, MAX_STR_SIZE, in)){
+		//check what the line says
+		//remove spaces
+		if(strncmp(str, "vt", 2) == 0){
+			sscanf(str, "%*s %f %f", &uv[t].x, &uv[t].y);
+			++t;
+		}
+		else if(strncmp(str, "vn", 2) == 0){
+			sscanf(str, "%*s %f %f %f", &normal[n].x, &normal[n].y, &normal[n].z);
+			++n;
+		}
+		else if(strncmp(str, "v", 1) == 0){
+			sscanf(str, "%*s %f %f %f", &position[p].x, &position[p].y, &position[p].z);
+			++p;
+		}
+		else if(strncmp(str, "f", 1) == 0){
+			//word == "f"
+			word = strtok(str, " \n\r\t");
+			
+			num_elements = 0;
+			//word == "a/b/c"
+			word = strtok(NULL, " \n\r\t");
+			while(word){
+				++num_elements;
+				sscanf(word, "%d//%d", &p, &n);
+				sscanf(word, "%d/%d/%d", &p, &t, &n);
+				if(num_elements > 3){
+					r->index_count += 3;
+					r->vertex_count += 3;
+				}
+				else{
+					r->index_count++;
+					r->vertex_count++;
+				}
+				word = strtok(NULL, " \n\r\t");
+			}
+		}
+		//ignore anything else
+		
+		if(p >= size || t >= size || n >= size){
+			//reallocate
+			size += 100;
+			position = (PWVec3*) realloc(position, sizeof(PWVec3) * size);
+			uv = (PWVec2*) realloc(uv, sizeof(PWVec2) * size);
+			normal = (PWVec3*) realloc(normal, sizeof(PWVec3) * size);
+		}
+	}
+	
+	//we are rendering triangles only, so all indices are consecutive
+	r->indices = (unsigned short*) malloc(sizeof(unsigned short) * r->vertex_count);
+	for(i = 0; i < r->index_count; ++i){
+		r->indices[i] = i;
+	}
+	
+	//read the index values from the files, and copy data to renderable
+	r->p = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
+	r->uv = (PWVec2*) malloc(sizeof(PWVec2) * r->vertex_count);
+	r->color = (unsigned int*) malloc(sizeof(unsigned int) * r->vertex_count);
+	r->n = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
+	
+	fseek(in, 0, SEEK_SET);
+	
+	i = 0;
+	while(fgets(str, MAX_STR_SIZE, in)){
+		if(strncmp(str, "f", 1) == 0){
+			//word == "f"
+			word = strtok(str, " \n\r\t");
+			
+			//size of the shape, 3 for triangle, etc
+			num_elements = 0;
+			//word == "a/b/c"
+			word = strtok(NULL, " \n\r\t");
+			while(word){
+				++num_elements;
+				sscanf(word, "%d//%d", &p, &n);
+				sscanf(word, "%d/%d/%d", &p, &t, &n);
+				if(num_elements > 3){
+					r->p[i] = r->p[i - (num_elements - 1)];
+					r->uv[i] = r->uv[i - (num_elements - 1)];
+					r->color[i] = 0xffffffff;
+					r->n[i] = r->n[i - (num_elements - 1)];
+					++i;
+					r->p[i] = r->p[i - 2];
+					r->uv[i] = r->uv[i - 2];
+					r->color[i] = 0xffffffff;
+					r->n[i] = r->n[i - 2];
+					++i;
+					r->p[i] = position[p - 1];
+					r->uv[i] = uv[t - 1];
+					r->color[i] = 0xffffffff;
+					r->n[i] = normal[n - 1];
+					++i;
+				}
+				else{
+					r->p[i] = position[p - 1];
+					r->uv[i] = uv[t - 1];
+					r->color[i] = 0xffffffff;
+					r->n[i] = normal[n - 1];
+					++i;
+				}
+				word = strtok(NULL, " \n\r\t");
+			}
+		}
+	}
+	
+	fclose(in);
+	free(position);
+	free(uv);
+	free(normal);
+	
+	return 0;
+}

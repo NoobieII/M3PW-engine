@@ -216,7 +216,59 @@ PWMat4 PWM_scale(
 	return m;
 }
 
-void PWM_scale_ref(PWMat4 *result, PWVec3 scale){
+inline void PWM_translation_ref(PWMat4 *result, PWVec3 translation){
+	result->elements[0] = result->elements[6] = result->elements[10]
+		= result->elements[15] = 1;
+	result->elements[1] = result->elements[2] = result->elements[4]
+		= result->elements[6] = result->elements[8] = result->elements[9] = 0;
+	#if defined PWMATRIX_COLUMN_MAJOR
+	result->elements[3] = result->elements[7] = result->elements[11] = 0;
+	result->elements[12] = translation.x;
+	result->elements[13] = translation.y;
+	result->elements[14] = translation.z;
+	#else
+	result->elements[12] = result->elements[13] = result->elements[14] = 0;
+	result->elements[3] = translation.x;
+	result->elements[7] = translation.y;
+	result->elements[11] = translation.z;
+	#endif
+}
+
+inline void PWM_rotation_ref(PWMat4 *result, PWMATRIX_TYPE angle, PWVec3 axis){
+	angle = angle * PI / 180.0;
+	PWMATRIX_TYPE c = cos(angle);
+	PWMATRIX_TYPE s = sin(angle);
+	PWMATRIX_TYPE omc = 1.0 - c;
+	
+	result->elements[0] = result->elements[5] = result->elements[10]
+		= result->elements[15] = 1;
+	result->elements[3] = result->elements[7] = result->elements[11]
+		= result->elements[12] = result->elements[13] = result->elements[14] = 0;
+	
+	#if defined PWMATRIX_COLUMN_MAJOR
+	result->elements[0] = axis.x * axis.x * omc + c;
+	result->elements[1] = axis.x * axis.y * omc + s * axis.z;
+	result->elements[2] = axis.x * axis.z * omc - s * axis.y;
+	result->elements[4] = axis.y * axis.x * omc - s * axis.z;
+	result->elements[5] = axis.y * axis.y * omc + c;
+	result->elements[6] = axis.y * axis.z * omc + s * axis.x;
+	result->elements[8] = axis.z * axis.x * omc + s * axis.y;
+	result->elements[9] = axis.z * axis.y * omc - s * axis.x;
+	result->elements[10] = axis.z * axis.z * omc + c;
+	#else
+	result->elements[0] = axis.x * axis.x * omc + c;
+	result->elements[1] = axis.y * axis.x * omc - s * axis.z;
+	result->elements[2] = axis.z * axis.x * omc + s * axis.y;
+	result->elements[4] = axis.x * axis.y * omc + s * axis.z;
+	result->elements[5] = axis.y * axis.y * omc + c;
+	result->elements[6] = axis.z * axis.y * omc - s * axis.x;
+	result->elements[8] = axis.x * axis.z * omc - s * axis.y;
+	result->elements[9] = axis.y * axis.z * omc + s * axis.x;
+	result->elements[10] = axis.z * axis.z * omc + c;
+	#endif
+}
+
+inline void PWM_scale_ref(PWMat4 *result, PWVec3 scale){
 	result->elements[0] = scale.x;
 	result->elements[1] = 0;
 	result->elements[2] = 0;

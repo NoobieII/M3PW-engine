@@ -123,19 +123,12 @@ PWMat4 PWM_perspective(
 	PWMATRIX_TYPE far
 );
 
-PWMat4 PWM_translation(
-	PWVec3 translation
-);
+PWMat4 PWM_translation(PWVec3 translation);
+PWMat4 PWM_rotation(PWMATRIX_TYPE angle, PWVec3 axis);
+PWMat4 PWM_scale(PWVec3 scale);
 
-PWMat4 PWM_rotation(
-	PWMATRIX_TYPE angle,
-	PWVec3 axis
-);
-
-PWMat4 PWM_scale(
-	PWVec3 scale
-);
-
+void PWM_translation_ref(PWMat4 *result, PWVec3 translation);
+void PWM_rotation_ref(PWMat4 *result, PWMATRIX_TYPE angle, PWVec3 axis);
 void PWM_scale_ref(PWMat4 *result, PWVec3 scale);
 
 PWMat4 PWM_add(PWMat4 lhs, PWMat4 rhs);

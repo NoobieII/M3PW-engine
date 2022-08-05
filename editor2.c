@@ -387,7 +387,7 @@ void ui_update(UI *ui, PWEngine *e){
 		if(pwengine_is_key_pressed(e, "Return")){
 			switch(ui->state){
 			case STATE_ADD_SHAPE:
-				result = pwrenderable_load(&r, textbox_get_str(ui->textbox_focus));
+				result = pwrenderable_load_obj(&r, textbox_get_str(ui->textbox_focus));
 				
 				if(result == 0){
 					pwrenderable_add_r(ui->model, ui->current_shape);

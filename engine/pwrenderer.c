@@ -127,6 +127,14 @@ void pwrenderer_submit(PWRenderer *renderer, PWRenderable *renderable){
 		return;
 	}
 	
+	//aa
+	//skip if renderable has more indices than the max indices
+	//but dont skip if index count is same as vertex count (all triangles)
+	if(renderable->index_count > PWRENDERER_MAX_INDICES && renderable->index_count != renderable->vertex_count){
+		printf("skipping\n");
+		return;
+	}
+	
 	if(renderer->index_count + renderable->index_count >= PWRENDERER_MAX_INDICES){
 		pwrenderer_end(renderer);
 		pwrenderer_flush(renderer);
@@ -166,29 +174,56 @@ void pwrenderer_submit(PWRenderer *renderer, PWRenderable *renderable){
 	
 	index_data = renderer->index_data;
 	vertex_data = renderer->vertex_data;
+
 	
-	//change the position based on transformation stack matrix
-	//matrix multiplication is done by reference for less data copying
-	for(i = 0; i < renderable->vertex_count; ++i){
-		PWM_mul_vec3_ref(&vertex_data->position, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->p[i]);
-		//printf("vertex %d = (%f, %f, %f)\n", i, vertex_data->position.x, vertex_data->position.y, vertex_data->position.z);
-		vertex_data->uv = renderable->uv[i];
-		vertex_data->tid = ts;
-		vertex_data->color = renderable->color[i];
-		vertex_data->normal = renderable->n[i];
-		//PWM_mul_vec3_notranslate_ref(&vertex_data->normal, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->n[i]);
-		vertex_data++;
+	//aa
+	//render it this way if index count is same as vertex count
+	if(renderable->index_count == renderable->vertex_count){
+		for(i = 0; i < renderable->vertex_count; ++i){
+			PWM_mul_vec3_ref(&vertex_data->position, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->p[i]);
+			
+			if(renderer->index_count >= PWRENDERER_MAX_INDICES || renderer->vertex_count >= PWRENDERER_MAX_INDICES){
+				printf("%d\n", i);
+				pwrenderer_end(renderer);
+				pwrenderer_flush(renderer);
+				pwrenderer_begin(renderer);
+				index_data = renderer->index_data;
+				vertex_data = renderer->vertex_data;
+			}
+			vertex_data->uv = renderable->uv[i];
+			vertex_data->tid = ts;
+			vertex_data->color = renderable->color[i];
+			vertex_data->normal = renderable->n[i];
+			//PWM_mul_vec3_notranslate_ref(&vertex_data->normal, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->n[i]);
+			vertex_data++;
+			*(index_data++) = renderer->vertex_count;
+			renderer->vertex_count++;
+			renderer->index_count++;
+		}
 	}
-	renderer->vertex_data = vertex_data;
-	
-	for(i = 0; i < renderable->index_count; ++i){
-		*(index_data++) = renderable->indices[i] + renderer->vertex_count;
+	else{
+		//change the position based on transformation stack matrix
+		//matrix multiplication is done by reference for less data copying
+		for(i = 0; i < renderable->vertex_count; ++i){
+			PWM_mul_vec3_ref(&vertex_data->position, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->p[i]);
+			//printf("vertex %d = (%f, %f, %f)\n", i, vertex_data->position.x, vertex_data->position.y, vertex_data->position.z);
+			vertex_data->uv = renderable->uv[i];
+			vertex_data->tid = ts;
+			vertex_data->color = renderable->color[i];
+			vertex_data->normal = renderable->n[i];
+			//PWM_mul_vec3_notranslate_ref(&vertex_data->normal, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->n[i]);
+			vertex_data++;
+		}
+		renderer->vertex_data = vertex_data;
+		
+		for(i = 0; i < renderable->index_count; ++i){
+			*(index_data++) = renderable->indices[i] + renderer->vertex_count;
+		}
+		renderer->index_data = index_data;
+		
+		renderer->vertex_count += renderable->vertex_count;
+		renderer->index_count += renderable->index_count;
 	}
-	renderer->index_data = index_data;
-	
-	//square requires 6 vertex indices
-	renderer->vertex_count += renderable->vertex_count;
-	renderer->index_count += renderable->index_count;
 }
 
 void pwrenderer_submit_str(PWRenderer *renderer, PWRenderable *renderable){
