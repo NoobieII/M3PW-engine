@@ -1,6 +1,35 @@
 //Lithio (The developer's pseudonym)
 //May 31, 2022
 
+//12 Nov 22
+//For readability, I explain the struct. The layer renders renderable objects.
+//Renderable objects may have a group transform attached to it
+//
+//This is an example of a struct with five renderable objects, with two level
+//of groups.
+//Origin            xx xx
+//Transformation 1        xx    xx
+//Transformation 2           xx
+//
+//The variables will be set as:
+//
+//rsize = 16
+//rlen = 5
+//renderables xx xx xx xx xx
+//
+//group_size = 16
+//group_len = 3
+//
+//group_indices 2 3 4
+//group_is_end  0 0 1
+//
+//transformations_size = 16
+//transformations_len = 2
+//transformations_overwrite 0 0
+//group_transformations xx xx
+//
+//note that sizes are always a multiple of 16
+
 #ifndef M3PW_PWLAYER_H
 #define M3PW_PWLAYER_H
 
@@ -22,6 +51,7 @@ typedef struct PWLayer{
 	int transformations_len;
 	int *transformations_overwrite;
 	PWMat4 **group_transformations;
+	//PWMat4 **world_transformations
 	PWShader shader;		//shader is a copy from outside
 	PWMat4 projection_matrix;
 } PWLayer;

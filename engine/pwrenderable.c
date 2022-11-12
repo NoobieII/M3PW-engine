@@ -633,6 +633,11 @@ void pwrenderable_reverse_index(PWRenderable *r){
 	}
 }
 
+inline void pwrenderable_reset(PWRenderable *r){
+	pwrenderable_close(r);
+	pwrenderable_init_none(r);
+}
+
 int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_normals){
 	PWVec3 position;
 	PWVec2 uv;
@@ -742,6 +747,10 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 	//don't actually count the vertices, but check the shapes
 	int vertex = 0;
 	int polygon_size = 0;
+	
+	if(strlen(filename) > 4 && strstr(filename, ".obj")){
+		return pwrenderable_load_obj(r, filename);
+	}
 	
 	in = fopen(filename, "rt");
 	if(!in){

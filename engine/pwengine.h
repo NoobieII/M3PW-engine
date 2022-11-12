@@ -1,5 +1,23 @@
 //engine.h
 
+//12 Nov 2022
+//For later consideration:
+//For every time update() is called, after the objects' update function is called, do not transform all vertices of a renderable. Transform the group instead.
+//
+//Layer: group transform, renderable
+//Object: referencing to group transform.
+//
+//Moving a player towards an enemy object.
+//in player update(), recalculate transform so that the player is closer to the enemy
+//in render
+//
+//if the group is nested (as for 3d things with multiple moving parts), how are things handled?
+//How do we get the transform WRT the origin?
+//solution 1: Make the layer hold a new array of transforms, working at the side of the group transforms. When render() is called, the new array of transforms will hold a value WRT the origin.
+//solution 2: Make something else handle the transforms. Can one thing handle the world transform? A reference to the group transforms of parent objects will do, but how will they be retrieved?
+//Solution 1 seems the most feasible. 
+//get_world_transform(
+
 #ifndef M3PW_ENGINE_H
 #define M3PW_ENGINE_H
 
@@ -7,6 +25,7 @@
 #include <GL/glu.h>
 #include <SDL.h>
 #include <SDL_net.h>
+#include "pwlayer.h"
 #include "pwrenderable.h"
 #include "pwsound_loader.h"
 #include "pwshader.h"
@@ -26,6 +45,8 @@ typedef struct PWEngine{
 	int last_update_time;
 	int last_sleep_time;
 	int next_sleep_time;
+	
+	//input
 	int is_quit;
 	int mouse_x;
 	int mouse_y;
@@ -41,16 +62,27 @@ typedef struct PWEngine{
 	HashTable *is_key_lifted;
 	HashTable *is_key_held;
 	char text_input[32];
+	
+	//graphics related
 	SDL_Window *window;
 	SDL_GLContext *gl_context;
 	PWShader shader;
+	
+	int layers_active[10];
+	PWLayer layers[10];
 	//SDL_Renderer *renderer;
+	
+	//audio
 	SDL_AudioDeviceID audio_device_id;
 	SDL_mutex *sound_mutex;
 	int sound_id;
 	HashTable *sounds_playing;
 	PWSoundLoader sound_loader;
+	
+	//textures
 	PWTextureLoader texture_loader;
+	
+	//objects
 	int object_id;
 	HashTable *objects;
 	HashTable *objects_id_name;
@@ -102,8 +134,14 @@ void      pwengine_add_object(PWEngine *e, PWObject *o);
 void      pwengine_load_texture(PWEngine *e, PWRenderable *r, const char *filename);
 PWTexture *pwengine_get_texture(PWEngine *e, const char *filename);
 
+//get shader and set perspective used for layer 0 (default layer)
 PWShader *pwengine_get_shader(PWEngine *e);
 void      pwengine_set_perspective(PWEngine *e, PWMat4 m);
+
+//set layer between layer 0 and 9, shader should only be used for initializing layer
+void      pwengine_set_layer(PWEngine *e, int num, PWMat4 pr_matrix, PWShader *s);
+PWLayer  *pwengine_get_layer(PWEngine *e, int num);
+
 //void      pwengine_set_orthographic
 
 //returns 0 if successful, -1 if not

@@ -937,6 +937,10 @@ float PWM_norm3_ref(PWVec3 *v){
 	return rt;
 }
 
+float PWM_angle3(PWVec3 v1, PWVec3 v2){
+	return (float) acos( (PWM_dot3(v1, v2)) / (PWM_norm3(v1) * PWM_norm3(v2)) );
+}
+
 inline PWRay PWM_ray(PWVec3 origin, PWVec3 direction){
 	PWRay ray;
 	ray.origin = origin;
@@ -1004,6 +1008,25 @@ inline int PWM_plane_classify(PWPlane *p, PWVec3 v){
 	return PWM_PLANAR;
 }
 
+int PWM_plane_classify_polygon(PWPlane *p, PWPolygon *polygon){
+	int i;
+	int num_back = 0;
+	//classify all the vertices
+	for(i = 0; i < polygon->vertex_count; ++i){
+		if(PWM_plane_classify(p, polygon->vertices[i]) == PWM_BACK){
+			num_back++;
+		}
+	}
+	
+	if(num_back == polygon->vertex_count){
+		return PWM_CULLED;
+	}
+	else if(num_back > 0){
+		return PWM_CLIPPED;
+	}
+	return PWM_VISIBLE;
+}
+
 //algorithm from Moller and Trumbore.
 int PWM_ray_x_triangle(PWRay *r, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t){
 	PWVec3 edge1, edge2;
@@ -1050,6 +1073,10 @@ int PWM_ray_x_triangle(PWRay *r, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t){
 	return 1;
 }
 
+inline int PWM_ray_x_polygon(PWRay *r, PWPolygon *polygon, float *t){
+	return PWM_polygon_x_ray(polygon, r, t);
+}
+
 int PWM_line_x_triangle(PWVec3 l0, PWVec3 l1, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t){
 	PWRay r;
 	PWVec3 dir;
@@ -1072,6 +1099,10 @@ int PWM_line_x_triangle(PWVec3 l0, PWVec3 l1, PWVec3 v0, PWVec3 v1, PWVec3 v2, f
 	}
 	
 	return 1;
+}
+
+inline int PWM_line_x_polygon(PWVec3 l0, PWVec3 l1, PWPolygon *polygon, float *t){
+	return PWM_polygon_x_line(polygon, l0, l1, t);
 }
 
 int PWM_ray_x_plane(PWRay *r, PWPlane *p, float *t, PWVec3 *hit){
@@ -1238,6 +1269,57 @@ int PWM_ray_x_obb(PWRay *r, PWObb *obb, float *t){
 	return 1;
 }
 
+int PWM_line_x_aabb(PWVec3 l0, PWVec3 l1, PWAabb *aabb, PWVec3 *hit){
+	PWRay r;
+	PWVec3 dir;
+	float d;
+	float _t;
+	
+	PWM_sub3_ref(&dir, &l1, &l0);
+	d = PWM_dot3(dir, dir);
+	PWM_normalize3_ref(&dir, &dir);
+	r = PWM_ray(l0, dir);
+	
+	if(PWM_ray_x_aabb(&r, aabb, hit) == 0){
+		return 0;
+	}
+	//calculate distance^2 from origin of ray to point where aabb hit
+	PWM_sub3_ref(&dir, hit, &l0);
+	//comepare with line length^2
+	if(d < PWM_dot3(dir, dir)){
+		return 0;
+	}
+	return 1;
+}
+
+int PWM_line_x_obb(PWVec3 l0, PWVec3 l1, PWObb *obb){
+	PWRay r;
+	PWVec3 dir;
+	float d;
+	float _t;
+	
+	PWM_sub3_ref(&dir, &l1, &l0);
+	d = PWM_dot3(dir, dir);
+	PWM_normalize3_ref(&dir, &dir);
+	r = PWM_ray(l0, dir);
+	
+	if(PWM_ray_x_obb(&r, obb, &_t) == 0){
+		return 0;
+	}
+	if(_t < 0.0 || _t*_t > d){
+		return 0;
+	}
+	return 1;
+}
+
+inline int PWM_plane_x_ray(PWPlane *p, PWRay *r, float *t, PWVec3 *hit){
+	return PWM_ray_x_plane(r, p, t, hit);
+}
+
+inline int PWM_plane_x_line(PWPlane *p, PWVec3 l0, PWVec3 l1, float *t, PWVec3 *hit){
+	return PWM_line_x_plane(l0, l1, p, t, hit);
+}
+
 int PWM_plane_x_triangle(PWPlane *p, PWVec3 v0, PWVec3 v1, PWVec3 v2){
 	int n;
 	
@@ -1323,6 +1405,699 @@ int PWM_plane_x_aabb(PWPlane *p, PWAabb *aabb){
 	return 0;
 }
 
+int PWM_plane_x_obb(PWPlane *p, PWObb *obb){
+	float radius;
+	float distance;
+	
+	radius = fabs(obb->fa[0] * PWM_dot3(p->normal, obb->a[0]))
+		+ fabs(obb->fa[1] * PWM_dot3(p->normal, obb->a[1]))
+		+ fabs(obb->fa[2] * PWM_dot3(p->normal, obb->a[2]));
+	
+	distance = PWM_norm3(obb->center);
+	return distance <= radius;
+}
+
+inline int PWM_aabb_x_ray(PWAabb *aabb, PWRay *r, PWVec3 *hit){
+	return PWM_ray_x_aabb(r, aabb, hit);
+}
+
+inline int PWM_aabb_x_line(PWAabb *aabb, PWVec3 l0, PWVec3 l1, PWVec3 *hit){
+	return PWM_line_x_aabb(l0, l1, aabb, hit);
+}
+
+inline int PWM_aabb_x_plane(PWAabb *aabb, PWPlane *p){
+	return PWM_plane_x_aabb(p, aabb);
+}
+
+int PWM_aabb_x_vec3(PWAabb *aabb, PWVec3 v){
+	return (v.x > aabb->min.x && v.x < aabb->max.x)
+		&& (v.y > aabb->min.y && v.y < aabb->max.y)
+		&& (v.z > aabb->min.z && v.z < aabb->max.z);
+}
+
+int PWM_aabb_x_aabb(PWAabb *aabb1, PWAabb *aabb2){
+	int a;
+	a = (aabb1->max.x < aabb2->min.x) //left
+	 || (aabb1->min.x > aabb2->max.x) //right
+	 || (aabb1->max.y < aabb2->min.y)
+	 || (aabb1->min.y > aabb2->max.y)
+	 || (aabb1->max.z < aabb2->min.z)
+	 || (aabb1->min.z > aabb2->max.z);
+	return !a;
+}
+
+inline int PWM_obb_x_ray(PWObb *obb, PWRay *r, float *t){
+	return PWM_ray_x_obb(r, obb, t);
+}
+
+inline int PWM_obb_x_line(PWObb *obb, PWVec3 l0, PWVec3 l1){
+	return PWM_line_x_obb(l0, l1, obb);
+}
+
+inline int PWM_obb_x_plane(PWObb *obb, PWPlane *p){
+	return PWM_plane_x_obb(p, obb);
+}
+
+int PWM_obb_x_triangle(PWObb *obb, PWVec3 v0, PWVec3 v1, PWVec3 v2){
+	float min0, max0, min1, max1;
+	float d_c;
+	PWVec3 v, tri_edge[3], a[3];
+	int i, j, k;
+	
+	//to enable loopings
+	a[0] = obb->a[0];
+	a[1] = obb->a[1];
+	a[2] = obb->a[2];
+	
+	//direction of tri normals
+	PWM_sub3_ref(&tri_edge[0], &v1, &v0);
+	PWM_sub3_ref(&tri_edge[1], &v2, &v0);
+	
+	PWM_cross3_ref(&v, &tri_edge[0], &tri_edge[1]);
+	
+	min0 = PWM_dot3(v, v0);
+	max0 = min0;
+	
+	PWM_obb_proj(obb, obb, v, &min1, &max1);
+	if(max1 < min0 || max0 < min1){
+		return 0;
+	}
+	
+	//direction of obb planes
+	//axis 1-3
+	for(i = 0; i < 3; ++i){
+		v = obb->a[i];
+		PWM_obb_triproj(obb, v0, v1, v2, v, &min0, &max0);
+		d_c = PWM_dot3(v, obb->center);
+		min1 = d_c - obb->fa[i];
+		max1 = d_c + obb->fa[i];
+		if(max1 < min0 || max0 < min1){
+			return 0;
+		}
+	}
+	
+	//direction of tri-obb-edge cross products
+	PWM_sub3_ref(&tri_edge[2], &tri_edge[1], &tri_edge[0]);
+	for(j = 0; j < 3; ++j){
+		for(k = 0; k < 3; ++k){
+			PWM_cross3_ref(&v, &tri_edge[j], &obb->a[k]);
+			PWM_obb_triproj(obb, v0, v1, v2, v, &min0, &max0);
+			PWM_obb_proj(obb, obb, v, &min1, &max1);
+			
+			if(max1 < min0 || max0 < min1){
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+int PWM_polygon_x_ray(PWPolygon *polygon, PWRay *ray, float *t){
+	int i;
+	
+	for(i = 0; i < polygon->index_count; i += 3){
+		if(PWM_ray_x_triangle(
+			ray,
+			polygon->vertices[polygon->indices[i]],
+			polygon->vertices[polygon->indices[i+1]],
+			polygon->vertices[polygon->indices[i+2]],
+			t)
+			){
+			return 1;
+		}
+		
+		#ifndef PWM_CULLING
+		if(PWM_ray_x_triangle(
+			ray,
+			polygon->vertices[polygon->indices[i+2]],
+			polygon->vertices[polygon->indices[i+1]],
+			polygon->vertices[polygon->indices[i]],
+			t)
+			){
+			return 1;
+		}
+		#endif	
+	}
+	return 0;
+}
+
+inline int PWM_polygon_x_line(PWPolygon *polygon, PWVec3 l0, PWVec3 l1, float *t){
+	PWRay r;
+	PWVec3 dir;
+	float d;
+	float _t;
+	
+	PWM_sub3_ref(&dir, &l1, &l0);
+	d = PWM_dot3(dir, dir);
+	PWM_normalize3_ref(&dir, &dir);
+	r = PWM_ray(l0, dir);
+	
+	if(PWM_polygon_x_ray(polygon, &r, &_t) == 0){
+		return 0;
+	}
+	if(_t*_t > d){
+		return 0;
+	}
+	if(t){
+		*t = _t;
+	}
+	
+	return 1;
+}
+
+int PWM_aabb_cull(PWAabb *aabb, PWPlane *planes, int size){
+	PWVec3 vmin, vmax;
+	int intersects = 0;
+	int i;
+	
+	for(i = 0; i < size; ++i){
+		if(planes[i].normal.x >= 0.0f){
+			vmin.x = aabb->min.x;
+			vmax.x = aabb->max.x;
+		}
+		else{
+			vmin.x = aabb->max.x;
+			vmax.x = aabb->min.x;
+		}
+		if(planes[i].normal.y >= 0.0f){
+			vmin.y = aabb->min.y;
+			vmax.y = aabb->max.y;
+		}
+		else{
+			vmin.y = aabb->max.y;
+			vmax.y = aabb->min.y;
+		}
+		if(planes[i].normal.z >= 0.0f){
+			vmin.z = aabb->min.z;
+			vmax.z = aabb->max.z;
+		}
+		else{
+			vmin.z = aabb->max.z;
+			vmax.z = aabb->min.z;
+		}
+		
+		if(PWM_dot3(planes[i].normal, vmin) + planes[i].distance > 0.0f){
+			return PWM_CULLED;
+		}
+		if(PWM_dot3(planes[i].normal, vmax) + planes[i].distance >= 0.0f){
+			intersects = 1;
+		}
+	}
+	if(intersects){
+		return PWM_CLIPPED;
+	}
+	return PWM_VISIBLE;
+};
+
+int PWM_obb_cull(PWObb *obb, PWPlane *planes, int size){
+	PWVec3 n;
+	int result = PWM_VISIBLE;
+	float radius;
+	float test;
+	int i;
+	
+	//for all planes
+	for(i = 0; i < size; ++i){
+		//bend normals inwards
+		PWM_mul3_ref(&n, &planes[i].normal, -1.0f);
+		
+		//calculate box radius
+		radius = fabs(obb->fa[0] * PWM_dot3(n, obb->a[0]))
+			+ fabs(obb->fa[1] * PWM_dot3(n, obb->a[1]))
+			+ fabs(obb->fa[2] * PWM_dot3(n, obb->a[2]));
+		
+		//reference value: (n*center - distance)
+		test = PWM_dot3(n, obb->center) - planes[i].distance;
+		
+		//obb on far side of plane
+		if(test < -radius) return PWM_CULLED;
+		
+		//or intersecting plane
+		else if(!(test > radius)) result = PWM_CLIPPED;
+	}
+	return result;
+}
+		
+		
+
+PWAabb PWM_obb_aabb(PWObb *obb){
+	PWVec3 a[3];
+	PWAabb aabb;
+	PWVec3 vmax, vmin;
+	
+	a[0] = PWM_mul3(obb->a[0], obb->fa[0]);
+	a[1] = PWM_mul3(obb->a[1], obb->fa[1]);
+	a[2] = PWM_mul3(obb->a[2], obb->fa[2]);
+	
+	if(a[0].x > a[1].x){
+		if(a[0].x > a[2].x){
+			aabb.max.x = a[0].x; aabb.min.x = -a[0].x;
+		}
+		else{
+			aabb.max.x = a[2].x; aabb.min.x = -a[2].x;
+		}
+	}
+	else{
+		if(a[1].x > a[2].x){
+			aabb.max.x = a[1].x; aabb.min.x = -a[1].x;
+		}
+		else{
+			aabb.max.x = a[2].x; aabb.min.x = -a[2].x;
+		}
+	}
+	if(a[0].y > a[1].y){
+		if(a[0].y > a[2].y){
+			aabb.max.y = a[0].y; aabb.min.y = -a[0].y;
+		}
+		else{
+			aabb.max.y = a[2].y; aabb.min.y = -a[2].y;
+		}
+	}
+	else{
+		if(a[1].y > a[2].y){
+			aabb.max.y = a[1].y; aabb.min.y = -a[1].y;
+		}
+		else{
+			aabb.max.y = a[2].y; aabb.min.x = -a[2].y;
+		}
+	}
+	if(a[0].z > a[1].z){
+		if(a[0].z > a[2].z){
+			aabb.max.z = a[0].z; aabb.min.x = -a[0].z;
+		}
+		else{
+			aabb.max.z = a[2].z; aabb.min.x = -a[2].z;
+		}
+	}
+	else{
+		if(a[1].z > a[2].z){
+			aabb.max.z = a[1].z; aabb.min.x = -a[1].z;
+		}
+		else{
+			aabb.max.x = a[2].z; aabb.min.z = -a[2].z;
+		}
+	}
+	
+	PWM_add3_ref(&aabb.max, &aabb.max, &obb->center);
+	PWM_add3_ref(&aabb.min, &aabb.min, &obb->center);
+	
+	return aabb;
+}
+
+inline void PWM_obb_detransform(PWObb *obb1, PWObb *obb2, PWMat4 *m){
+	PWMat4 mat = *m;
+	PWVec3 t;
+	
+	PWM_mul_vec3_ref(&obb1->center, m, &obb2->center);
+	PWM_mul_vec3_notranslate_ref(&obb1->a[1], m, &obb2->a[0]);
+	PWM_mul_vec3_notranslate_ref(&obb1->a[2], m, &obb2->a[1]);
+	PWM_mul_vec3_notranslate_ref(&obb1->a[3], m, &obb2->a[2]);
+	obb1->fa[0] = obb2->fa[0];
+	obb1->fa[1] = obb2->fa[1];
+	obb1->fa[2] = obb2->fa[2];
+}
+
+void PWM_obb_proj(PWObb *obb1, PWObb *obb2, PWVec3 v, float *min, float *max){
+	float dp;
+	float r;
+	dp = PWM_dot3(v, obb2->center);
+	r = obb2->fa[0] * fabs(PWM_dot3(v, obb2->a[0]))
+		+ obb2->fa[1] * fabs(PWM_dot3(v, obb2->a[1]))
+		+ obb2->fa[2] * fabs(PWM_dot3(v, obb2->a[2]));
+	*min = dp - r;
+	*max = dp + r;
+}
+
+void PWM_obb_triproj(PWObb *obb, PWVec3 v0, PWVec3 v1, PWVec3 v2, PWVec3 v, float *min, float *max){
+	float dp;
+	*min = PWM_dot3(v, v0);
+	*max = *min;
+	
+	dp = PWM_dot3(v, v1);
+	if(dp < *min) *min = dp;
+	else if(dp > *max) *max = dp;
+	
+	dp = PWM_dot3(v, v2);
+	if(dp < *min) *min = dp;
+	else if(dp > *max) *max = dp;
+}
+
+void PWM_aabb_get_planes(PWAabb *aabb, PWPlane *planes){
+	if(!planes) return;
+	
+	//right, left, front, back, top, bottom
+	planes[0] = PWM_plane(PWM_vec3(1.0f, 0.0f, 0.0f), aabb->max);
+	planes[1] = PWM_plane(PWM_vec3(-1.0f, 0.0f, 0.0f), aabb->min);
+	planes[2] = PWM_plane(PWM_vec3(0.0f, 0.0f, -1.0f), aabb->min);
+	planes[3] = PWM_plane(PWM_vec3(0.0f, 0.0f, 1.0f), aabb->max);
+	planes[4] = PWM_plane(PWM_vec3(0.0f, 1.0f, 0.0f), aabb->max);
+	planes[5] = PWM_plane(PWM_vec3(0.0f, -1.0f, 0.0f), aabb->min);
+}
+
+int PWM_aabb_contains(PWAabb *aabb, PWRay *ray, float l){
+	PWVec3 end;
+	end = PWM_add3(ray->origin, PWM_mul3(ray->dir, l));
+	
+	return (ray->origin.x < aabb->max.x) && (ray->origin.y < aabb->max.y)
+		&& (ray->origin.z < aabb->max.z) && (ray->origin.x > aabb->min.x)
+		&& (ray->origin.y > aabb->min.y) && (ray->origin.z > aabb->min.z)
+		&& (end.x < aabb->max.x) && (end.y < aabb->max.y)
+		&& (end.z < aabb->max.z) && (end.x > aabb->min.x)
+		&& (end.y > aabb->min.y) && (end.z > aabb->min.z);
+}
+
+PWPolygon PWM_polygon(PWVec3 *vertices, int vertex_count, unsigned short *indices, int index_count){
+	PWPolygon polygon;
+	PWVec3 edge0, edge1;
+	int got_em = 0;
+	int i;
+	
+	polygon.vertex_count = vertex_count;
+	polygon.vertices = (PWVec3*) malloc(sizeof(PWVec3) * vertex_count);
+	memcpy(polygon.vertices, vertices, sizeof(PWVec3) * vertex_count);
+	polygon.index_count = index_count;
+	polygon.indices = (unsigned short*) malloc(sizeof(unsigned short) * index_count);
+	memcpy(polygon.indices, indices, sizeof(unsigned short) * index_count);
+	
+	PWM_sub3_ref(&edge0, &polygon.vertices[polygon.indices[1]] ,&polygon.vertices[polygon.indices[0]]);
+	edge0 = PWM_normalize3(edge0);
+	
+	//calculate the plane
+	for(i = 2; !got_em; ++i){
+		if((i + 1) > index_count) break;
+		
+		PWM_sub3_ref(&edge1, &polygon.vertices[polygon.indices[i]] ,&polygon.vertices[polygon.indices[0]]);
+		
+		edge1 = PWM_normalize3(edge1);
+		
+		//edges must be not parallel
+		if(PWM_angle3(edge0, edge1) != 0.0f){
+			got_em = 1;
+		}
+	}
+	
+	PWM_cross3_ref(&polygon.plane.normal, &edge0, &edge1);
+	polygon.plane.normal = PWM_normalize3(polygon.plane.normal);
+	polygon.plane.distance = -(PWM_dot3(polygon.plane.normal, polygon.vertices[0]));
+	polygon.plane.p = polygon.vertices[0];
+	
+	PWM_polygon_calc_bounding_box(&polygon);
+	
+	return polygon;
+}
+
+void PWM_polygon_calc_bounding_box(PWPolygon *polygon){
+	PWVec3 max, min;
+	int i;
+	
+	//find the maximum/minimum of all points in the polygon
+	max = min = polygon->vertices[0];
+	for(i = 0; i < polygon->vertex_count; ++i){
+		if(polygon->vertices[i].x > max.x)
+			max.x = polygon->vertices[i].x;
+		else if(polygon->vertices[i].x < min.x)
+			min.x = polygon->vertices[i].x;
+		
+		if(polygon->vertices[i].y > max.y)
+			max.y = polygon->vertices[i].y;
+		else if(polygon->vertices[i].y < min.y)
+			min.y = polygon->vertices[i].y;
+		
+		if(polygon->vertices[i].z > max.z)
+			max.z = polygon->vertices[i].z;
+		else if(polygon->vertices[i].z < min.z)
+			min.z = polygon->vertices[i].z;
+	}
+	polygon->aabb.max = max;
+	polygon->aabb.min = min;
+	//TODO
+	//find out about aabb and center point - there is none in our class!
+	//PWM_add3_ref(&polygon->aabb.center, &max, &min);
+	//PWM_mul3_ref(&polygon->aabb.center, &polygon->aabb.center, 0.5);
+}
+
+void PWM_polygon_clip_polygon(PWPolygon *polygon, PWPlane *plane, PWPolygon *front, PWPolygon *back){
+	PWVec3 hit, a, b;
+	PWRay ray;
+	unsigned int num_front = 0; //number of points front side
+	unsigned int num_back = 0; //number of points back side
+	unsigned int loop = 0;
+	unsigned int current = 0;
+	PWVec3 *vfront;
+	PWVec3 *vback;
+	int class_b, class_a;  //nClass == class_b
+	float length;
+	float t;
+	unsigned short i0, i1, i2;
+	unsigned short *ifront = NULL;
+	unsigned short *iback = NULL;
+	
+	if(!front && !back) return;
+	
+	vfront = (PWVec3*) malloc(sizeof(PWVec3) * 3 * polygon->vertex_count);
+	vback = (PWVec3*) malloc(sizeof(PWVec3) * 3 * polygon->vertex_count);
+	
+	//classify the first point
+	switch(PWM_plane_classify(plane, polygon->vertices[0])){
+	case PWM_FRONT:
+		vfront[num_front++] = polygon->vertices[0];
+		break;
+	case PWM_BACK:
+		vback[num_back++] = polygon->vertices[0];
+		break;
+	case PWM_PLANAR:
+		vback[num_back++] = polygon->vertices[0];
+		vfront[num_front++] = polygon->vertices[0];
+		break;
+	default:
+		return;
+	}
+	
+	//loop through all points of the polygon
+	for(loop = 1; loop < (polygon->vertex_count + 1); ++loop){
+		if(loop == polygon->vertex_count) current = 0;
+		else current = loop;
+		
+		//take two neighbor points from the polygon
+		a = polygon->vertices[loop - 1];
+		b = polygon->vertices[current];
+		
+		//classify them with respect ot the plane
+		class_b = PWM_plane_classify(plane, b);
+		class_a = PWM_plane_classify(plane, a);
+		
+		//if planar add to both sides
+		if(class_b == PWM_PLANAR){
+			vback[num_back++] = polygon->vertices[current];
+			vfront[num_front++] = polygon->vertices[current];
+		}
+		//test if an edge intersects the plane
+		else{
+			ray.origin = a;
+			PWM_sub3_ref(&ray.dir, &b, &a);
+			
+			length = PWM_norm3(ray.dir);
+			
+			if(length != 0.0f) PWM_mul3_ref(&ray.dir, &ray.dir, 1.0f / length);
+			
+			//from book:
+			//bool Intersects(const ZFXPlane &plane, bool bCull,
+			//float fL, float *t,
+			//ZFXVector *vcHit);
+			
+			if(class_a != PWM_PLANAR && PWM_ray_x_plane(&ray, plane, &t, &hit)){
+				if(t < length){
+					//then insert intersection point as
+					//new point in both list
+					vback[num_back++] = hit;
+					vfront[num_front++] = hit;
+				}
+			}
+			//sort the current point
+			if(current == 0) continue;
+			
+			if(class_b == PWM_FRONT){
+				vfront[num_front++] = polygon->vertices[current];
+			}
+			else if(class_b = PWM_BACK){
+				vback[num_back++] = polygon->vertices[current];
+			}
+		}
+	}
+	
+	//now we have the vertices of the two polygons
+	//let's take care of the indices
+	if(num_front > 2){
+		ifront = (unsigned short*) malloc(sizeof(unsigned short) * (num_front - 2) * 3);
+		
+		for(loop = 0; loop < (num_front - 2); ++loop){
+			if(loop == 0){ i0 = 0; i1 = 1; i2 = 2; }
+			else{ i1 = i2; i2++; }
+			
+			ifront[loop * 3    ] = i0;
+			ifront[loop * 3 + 1] = i1;
+			ifront[loop * 3 + 2] = i2;
+		}
+	}
+	
+	if(num_back > 2){
+		iback = (unsigned short*) malloc(sizeof(unsigned short) * (num_back - 2) * 3);
+		
+		for(loop = 0; loop < (num_back - 2); ++loop){
+			if(loop == 0){ i0 = 0; i1 = 1; i2 = 2; }
+			else{ i1 = i2; i2++; }
+			
+			iback[loop * 3    ] = i0;
+			iback[loop * 3 + 1] = i1;
+			iback[loop * 3 + 2] = i2;
+		}
+	}
+	
+	//generate new polys
+	if(front && ifront){
+		*front = PWM_polygon(vfront, num_front, ifront, (num_front - 2) * 3);
+		
+		//maintain same orientation as original polygon
+		if(PWM_dot3(front->plane.normal, polygon->plane.normal) < 0.0f){
+			PWM_polygon_swap_faces(front);
+		}
+	}
+	if(back && iback){
+		*back = PWM_polygon(vback, num_back, iback, (num_back - 2) * 3);
+		
+		if(PWM_dot3(back->plane.normal, polygon->plane.normal) < 0.0f){
+			PWM_polygon_swap_faces(back);
+		}
+	}
+	
+	if(vfront) free(vfront);
+	if(vback) free(vback);
+	if(ifront) free(ifront);
+	if(iback) free(iback);
+}
+
+void PWM_polygon_clip_aabb(PWPolygon *polygon, PWAabb *aabb){
+	PWPolygon back_poly, clipped_poly;
+	PWPlane planes[6];
+	int clipped = 0;
+	int i;
+	
+	//get planes from aabb, normals pointing outwards
+	PWM_aabb_get_planes(aabb, planes);
+	
+	//copy the polygon
+	PWM_polygon_copy_of(&clipped_poly, polygon);
+	
+	//do the clipping
+	for(i = 0; i < 6; ++i){
+		if(PWM_plane_classify_polygon(&planes[i], &clipped_poly) == PWM_CLIPPED){
+			PWM_polygon_clip_polygon(&clipped_poly, &planes[i], NULL, &back_poly);
+			PWM_polygon_close(&clipped_poly); //free memory first
+			PWM_polygon_copy_of(&clipped_poly, &back_poly);
+			clipped = 1;
+		}
+	}
+	
+	if(clipped){
+		PWM_polygon_close(polygon);
+		PWM_polygon_copy_of(polygon, &clipped_poly);
+	}
+	
+	PWM_polygon_close(&back_poly);
+	PWM_polygon_close(&clipped_poly);
+}
+
+int PWM_polygon_cull(PWPolygon *polygon, PWAabb *aabb){
+	PWPlane planes[6];
+	int n_class = 0;
+	int n_inside = 0;
+	int n_current = 0;
+	int n_loop;
+	int first = 1;
+	PWRay ray;
+	int p, i;
+	float length;
+	
+	//planes of aabb, normals pointing outwards
+	PWM_aabb_get_planes(aabb, planes);
+	
+	//do aabb intersect at all
+	if(!PWM_aabb_x_aabb(&polygon->aabb, aabb)){
+		return PWM_CULLED; //no way
+	}
+	
+	//all planes of the box
+	for(p = 0; p < 6; ++p){
+		//one time test if all points inside aabb
+		if(first){
+			for(i = 0; i < polygon->vertex_count; ++i){
+				if(PWM_aabb_x_vec3(aabb, polygon->vertices[i])){
+					n_inside++;
+				}
+			}
+			first = 0;
+			
+			// yes => polygon totally inside aabb
+			if(n_inside == polygon->vertex_count){
+				return PWM_VISIBLE;
+			}
+		}
+		
+		//test intersection of plane with polygon edges
+		for(n_loop = 1; n_loop < polygon->vertex_count + 1; ++n_loop){
+			if(n_loop == polygon->vertex_count) n_current = 0;
+			else n_current = n_loop;
+			
+			//edge from two neighbor points
+			ray.origin = polygon->vertices[n_loop - 1];
+			ray.dir = polygon->vertices[n_current];
+			PWM_sub3_ref(&ray.dir, &ray.dir, &ray.origin);
+			
+			length = PWM_norm3(ray.dir);
+			if(length != 0.0f) PWM_mul3_ref(&ray.dir, &ray.dir, 1.0f / length);
+			
+			//if intersection aabb intersects polygon
+			if(PWM_ray_x_plane(&ray, &planes[p], &length, NULL) && length < 1.0f){
+				return PWM_CLIPPED;
+			}
+		}
+	}
+	
+	//polygon not inside aabb and not intersection
+	return PWM_CULLED;
+}
+
+void PWM_polygon_copy_of(PWPolygon *dest, PWPolygon *src){
+	dest->plane = src->plane;
+	dest->vertex_count = src->vertex_count;
+	dest->index_count = src->index_count;
+	dest->aabb = src->aabb;
+	dest->flag = src->flag;
+	dest->vertices = (PWVec3*) malloc(sizeof(PWVec3) * src->vertex_count);
+	memcpy(dest->vertices, src->vertices, sizeof(PWVec3) * src->vertex_count);
+	dest->indices = (unsigned short*) malloc(sizeof(unsigned short) * src->index_count);
+	memcpy(dest->indices, src->indices, sizeof(unsigned short) * src->index_count);
+}
+
+void PWM_polygon_swap_faces(PWPolygon *polygon){
+	unsigned short tmp;
+	int i;
+	
+	//reverse indices
+	for(i = 0; i < polygon->index_count / 2; ++i){
+		tmp = polygon->indices[i];
+		polygon->indices[i] = polygon->indices[polygon->index_count - 1 - i];
+		polygon->indices[polygon->index_count - 1 - i] = tmp;
+	}
+	
+	//invert normal direction
+	PWM_mul3_ref(&polygon->plane.normal, &polygon->plane.normal, -1.0f);
+	polygon->plane.distance *= -1.0f;
+}
+
+//int PWM_polygon_x_ray(PWPolygon *polygon, PWRay *ray, int, float*);
+//int PWM_polygon_x_ray(PWPolygon *polygon, PWRay *ray, int, float l, float *t);
+
 void PWM_print(PWMat4 m){
 	int i, j;
 	
@@ -1337,6 +2112,15 @@ void PWM_print(PWMat4 m){
 		printf("\n");
 	}
 	printf("\n");
+}
+
+void PWM_polygon_close(PWPolygon *polygon){
+	if(polygon->vertices){
+		free(polygon->vertices);
+	}
+	if(polygon->indices){
+		free(polygon->indices);
+	}
 }
 
 void PWM_printa(PWMat4 m, PWMat4 a){

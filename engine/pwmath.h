@@ -13,7 +13,9 @@
 //             DONE  PWM_plane_x_plane
 //             DONE  PWM_plane_x_aabb
 //                   
-//                   
+//12 Nov 2022 
+//Finished writing the collision functions from the the book. Functionality with
+//doubles will probably be removed soon, as well as row major format support.
 
 #ifndef PWMATRIX_H
 #define PWMATRIX_H
@@ -42,9 +44,15 @@
 #define PI 3.1415926535897932384626433f
 #endif
 
+//enable omission of intersection with triangles that are clockwise
+//#define PWM_CULLING
+
 #define PWM_FRONT  0
 #define PWM_BACK   1
 #define PWM_PLANAR 2
+#define PWM_CLIPPED 3
+#define PWM_CULLED  4
+#define PWM_VISIBLE 5
 
 //Matrices and vectors will be row major by default
 typedef struct __attribute__((aligned(16))) PWMat4{
@@ -66,8 +74,8 @@ typedef struct PWVec4{
 //collision structs
 
 typedef struct PWRay{
-	PWVec3 origin;
-	PWVec3 dir;
+	PWVec3 origin;            //m_vcOrig
+	PWVec3 dir;               //m_vcDir
 } PWRay;
 
 typedef struct PWPlane{
@@ -78,7 +86,7 @@ typedef struct PWPlane{
 
 //axis aligned bounding box
 typedef struct PWAabb{
-	PWVec3 min;
+	PWVec3 min;               
 	PWVec3 max;
 } PWAabb;
 
@@ -88,6 +96,17 @@ typedef struct PWObb{
 	PWVec3 a[3];
 	float fa[3];
 } PWObb;
+
+//polygon class
+typedef struct PWPolygon{
+	PWPlane plane;            //m_Plane
+	int vertex_count;         //m_NumP
+	int index_count;          //m_NumI
+	PWAabb aabb;              //m_Aabb
+	unsigned int flag;        //m_Flag
+	PWVec3 *vertices;         //m_pPoints
+	unsigned short *indices;  //m_pIndis
+} PWPolygon;
 
 //function comments in doxygen's format because I feel fancy today...
 /**
@@ -174,7 +193,7 @@ void PWM_sub4_ref(PWVec4 *result, PWVec4 *v1, PWVec4 *v2);
 
 //multiplication
 //better performance using ref
-//save if result == v
+//safe if result == v
 PWVec2 PWM_mul2(PWVec2 v, PWMATRIX_TYPE f);
 void PWM_mul2_ref(PWVec2 *result, PWVec2 *v, PWMATRIX_TYPE f);
 PWVec3 PWM_mul3(PWVec3 v, PWMATRIX_TYPE f);
@@ -208,6 +227,9 @@ void PWM_normalize3_ref(PWVec3 *result, PWVec3 *v);
 float PWM_norm3(PWVec3 v);
 float PWM_norm3_ref(PWVec3 *v);
 
+//angle between 2 vectors in radians
+float PWM_angle3(PWVec3 v1, PWVec3 v2);
+
 
 //direction must be normalized
 PWRay PWM_ray(PWVec3 origin, PWVec3 direction);
@@ -226,33 +248,87 @@ void PWM_ray_detransform(PWRay *r, PWMat4 *transform);
 
 //distance from a vector point to plane
 //classify a point with respect to the plane... returns one of the macro defs
+//classify a polygon with respect to the plane... returns PWM_CLIPPED, PWM_CULLED, PWM_VISIBLE
 float PWM_plane_distance(PWPlane *p, PWVec3 v);
 int PWM_plane_classify(PWPlane *p, PWVec3 v);
-
-//enable omission of intersection with triangles that are clockwise
-//#define PWM_CULLING
+int PWM_plane_classify_polygon(PWPlane *p, PWPolygon *polygon);
 
 //intersection functions (returns nonzero if intersects)
-//ray with 3 points of a triangle. optionally store distance in t
-//line segment with 3 points of a triangle
+
 //ray with a plane. optionally store distance in t
-int PWM_ray_x_triangle(PWRay *r, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t);
-int PWM_line_x_triangle(PWVec3 l0, PWVec3 l1, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t);
-int PWM_ray_x_plane(PWRay *r, PWPlane *p, float *t, PWVec3 *hit);
-int PWM_line_x_plane(PWVec3 l0, PWVec3 l1, PWPlane *p, float *t, PWVec3 *hit);
-
 //axis aligned bounded boxes... hit must not be NULL
+//ray with 3 points of a triangle. optionally store distance in t
+int PWM_ray_x_plane(PWRay *r, PWPlane *p, float *t, PWVec3 *hit);
 int PWM_ray_x_aabb(PWRay *r, PWAabb *aabb, PWVec3 *hit);
-
 int PWM_ray_x_obb(PWRay *r, PWObb *obb, float *t);
+int PWM_ray_x_triangle(PWRay *r, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t);
+int PWM_ray_x_polygon(PWRay *r, PWPolygon *polygon, float *t);
+
+int PWM_line_x_plane(PWVec3 l0, PWVec3 l1, PWPlane *p, float *t, PWVec3 *hit);
+int PWM_line_x_aabb(PWVec3 l0, PWVec3 l1, PWAabb *aabb, PWVec3 *hit);
 int PWM_line_x_obb(PWVec3 l0, PWVec3 l1, PWObb *obb);
+int PWM_line_x_triangle(PWVec3 l0, PWVec3 l1, PWVec3 v0, PWVec3 v1, PWVec3 v2, float *t);
+int PWM_line_x_polygon(PWVec3 l0, PWVec3 l1, PWPolygon *polygon, float *t);
 
 //plane intersection with a triangle
 //plane intersection with plane, ray is optional if line intersection is needed
 //intersection with plane and aabb
-int PWM_plane_x_triangle(PWPlane *p, PWVec3 v0, PWVec3 v1, PWVec3 v2);
+
+int PWM_plane_x_ray(PWPlane *p, PWRay *r, float *t, PWVec3 *hit);
+int PWM_plane_x_line(PWPlane *p, PWVec3 l0, PWVec3 l1, float *t, PWVec3 *hit);
 int PWM_plane_x_plane(PWPlane *p1, PWPlane *p2, PWRay *r);
 int PWM_plane_x_aabb(PWPlane *p, PWAabb *aabb);
+int PWM_plane_x_obb(PWPlane *p, PWObb *obb);
+int PWM_plane_x_triangle(PWPlane *p, PWVec3 v0, PWVec3 v1, PWVec3 v2);
+
+int PWM_aabb_x_ray(PWAabb *aabb, PWRay *r, PWVec3 *hit);
+int PWM_aabb_x_line(PWAabb *aabb, PWVec3 l0, PWVec3 l1, PWVec3 *hit);
+int PWM_aabb_x_plane(PWAabb *aabb, PWPlane *p);
+int PWM_aabb_x_vec3(PWAabb *aabb, PWVec3 v);
+int PWM_aabb_x_aabb(PWAabb *aabb1, PWAabb *aabb2);
+//int PWM_aabb_x_obb(PWAabb *aabb, PWObb *obb);
+//int PWM_aabb_x_triangle
+
+int PWM_obb_x_ray(PWObb *obb, PWRay *r, float *t);
+int PWM_obb_x_line(PWObb *obb, PWVec3 l0, PWVec3 l1);
+int PWM_obb_x_plane(PWObb *obb, PWPlane *p); //todo, just inline
+int PWM_obb_x_triangle(PWObb *obb, PWVec3 v0, PWVec3 v1, PWVec3 v2);
+
+int PWM_polygon_x_ray(PWPolygon *polygon, PWRay *ray, float *t);
+int PWM_polygon_x_line(PWPolygon *polygon, PWVec3 l0, PWVec3 l1, float *t);
+
+//caution: the normal vectors of the viewing volume planes are pointing outward.
+//the space enclosed by those planes can then be thought of as the insides of 
+//the viewing volume.
+//returns: PWM_CLIPPED, PWM_CULLED, PWM_VISIBLE
+int PWM_aabb_cull(PWAabb *aabb, PWPlane *planes, int size);
+int PWM_obb_cull(PWObb *obb, PWPlane *planes, int size);
+
+//get an aabb from an obb
+PWAabb PWM_obb_aabb(PWObb *obb);
+
+//return obb1 as to obb2 transformed to the coordinate space of m
+void PWM_obb_detransform(PWObb *obb1, PWObb *obb2, PWMat4 *m);
+
+//helper functions
+void PWM_obb_proj(PWObb *obb1, PWObb *obb2, PWVec3 v, float *min, float *max);
+void PWM_obb_triproj(PWObb *obb, PWVec3 v0, PWVec3 v1, PWVec3 v2, PWVec3 v, float *min, float *max);
+
+//get (6) planes from an aabb
+void PWM_aabb_get_planes(PWAabb *aabb, PWPlane *planes);
+
+//if a ray of length l is contained inside the aabb
+int PWM_aabb_contains(PWAabb *aabb, PWRay *ray, float l);
+
+PWPolygon PWM_polygon(PWVec3 *vertices, int vertex_count, unsigned short *indices, int index_count);
+void PWM_polygon_calc_bounding_box(PWPolygon *polygon);
+void PWM_polygon_clip_polygon(PWPolygon *polygon, PWPlane *plane, PWPolygon *front, PWPolygon *back);
+void PWM_polygon_clip_aabb(PWPolygon *polygon, PWAabb *aabb);
+int PWM_polygon_cull(PWPolygon *polygon, PWAabb *aabb);
+void PWM_polygon_copy_of(PWPolygon *dest, PWPolygon *src);
+void PWM_polygon_swap_faces(PWPolygon *polygon);
+
+void PWM_polygon_close(PWPolygon *polygon);
 
 //print contents of one or two matrices
 void PWM_print(PWMat4 m);

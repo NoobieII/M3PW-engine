@@ -5,6 +5,7 @@
 //gcc -I/usr/include/SDL2 cursor.c editor2.c textbox.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -msse -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_net -lGL -lGLU -lGLEW -lm -o editor2
 
 //Windows
+//cd C:/Users/Ryan/github/M3PW-engine
 //gcc -IC:/msys64/mingw32/include/SDL2 cursor.c editor2.c textbox.c engine/*.c engine/utilities/*.c engine/vorbis/*.c -m32 -msse -lmingw32 -lSDL2main -lSDL2.dll -lSDL2_image.dll -lSDL2_ttf.dll -lSDL2_net.dll -lws2_32 -lopengl32 -lglu32 -lglew32 -lglew32s -o editor2 -static
 
 #include <stdio.h>
@@ -387,7 +388,7 @@ void ui_update(UI *ui, PWEngine *e){
 		if(pwengine_is_key_pressed(e, "Return")){
 			switch(ui->state){
 			case STATE_ADD_SHAPE:
-				result = pwrenderable_load_obj(&r, textbox_get_str(ui->textbox_focus));
+				result = pwrenderable_load(&r, textbox_get_str(ui->textbox_focus));
 				
 				if(result == 0){
 					pwrenderable_add_r(ui->model, ui->current_shape);
@@ -411,6 +412,9 @@ void ui_update(UI *ui, PWEngine *e){
 				break;
 			case STATE_LOAD_FILE:
 				//TODO
+				pwrenderable_reset(ui->model);
+				pwrenderable_reset(ui->current_shape);
+				pwrenderable_load(ui->model, textbox_get_str(ui->textbox_focus));
 				result = 0;
 				break;
 			case STATE_LOAD_TEXTURE:

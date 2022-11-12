@@ -29,6 +29,7 @@ PWEngine *pwengine_init(int width, int height, int framerate, const char *name){
 	GLenum glerror = GL_NO_ERROR;
 	PWMat4 ortho, vw, ml;
 	int max_textures;
+	int i;
 	
 	GLint texture_ids[] = {
 		0, 1, 2, 3, 4, 5, 6, 7,
@@ -181,7 +182,13 @@ PWEngine *pwengine_init(int width, int height, int framerate, const char *name){
 	pwshader_set_uniform_3f(&e->shader, "light_direction", PWM_vec3(0, 0, 1));
 	pwshader_set_uniform_1f(&e->shader, "ambient_intensity", 0.5);
 	
+	//initialize layer
+	e->layers_active[0] = 1;
+	pwlayer_init(&e->layers[0], &e->shader, ortho);
 	
+	for(i = 1; i < 10; ++i){
+		e->layers_active[i] = 0;
+	}
 	
 	//initialize time
 	#if (defined(unix) || defined(__unix) || defined(__unix__))
@@ -248,6 +255,7 @@ pwengine_init_cleanup:
 }
 
 void pwengine_free(PWEngine *e){
+	int i;
 	void *ptr;
 	int result;
 	
@@ -260,11 +268,19 @@ void pwengine_free(PWEngine *e){
 		printf("Net thread returns %d (0 == OK)\n", result);
 	}
 	
+	//close layer(s)
+	for(i = 0; i < 10; ++i){
+		if(e->layers_active[i]){
+			pwlayer_close(&e->layers[i]);
+		}
+	}
+	
 	if(e->window){
 		SDL_DestroyWindow(e->window);
 	}
 	pwshader_close(&e->shader);
 	
+	//clear input data
 	ptr = hashtable_begin(e->is_key_pressed);
 	while(ptr){
 		free(ptr);
@@ -299,6 +315,7 @@ void pwengine_free(PWEngine *e){
 	pwsoundloader_close(&e->sound_loader);
 	pwtextureloader_close(&e->texture_loader);
 	
+	//destroy objects
 	ptr = hashtable_begin(e->objects);
 	while(ptr){
 		pwobject_close((PWObject*)ptr);
@@ -306,6 +323,7 @@ void pwengine_free(PWEngine *e){
 	}
 	hashtable_clear(e->objects);
 	
+	//clear object name/id tables
 	hashtable_clear(e->objects_id_name);
 	hashtable_clear(e->objects_name_id);
 	
@@ -803,6 +821,29 @@ PWShader *pwengine_get_shader(PWEngine *e){
 
 void pwengine_set_perspective(PWEngine *e, PWMat4 m){
 	pwshader_set_uniform_mat4(&e->shader, "pr_matrix", m);
+}
+
+void pwengine_set_layer(PWEngine *e, int num, PWMat4 pr_matrix, PWShader *s){
+	if(num < 0 || num > 10){
+		return;
+	}
+	if(e->layers_active[num]){
+		pwlayer_set_projection(&e->layers[num], pr_matrix);
+	}
+	else {
+		if(!s){
+			printf("pwengine_set_layer: Shader for layer %d is null.\n", num);
+		}
+		pwlayer_init(&e->layers[num], s, pr_matrix);
+		e->layers_active[num] = 1;
+	}
+}
+	
+PWLayer *pwengine_get_layer(PWEngine *e, int num){
+	if(num < 0 || num > 10 || !(e->layers_active[num])){
+		return NULL;
+	}
+	return &e->layers[num];
 }
 
 void pwengine_add_object(PWEngine *e, PWObject *o){
