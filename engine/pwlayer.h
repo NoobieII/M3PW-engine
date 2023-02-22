@@ -57,9 +57,12 @@ typedef struct PWLayer{
 } PWLayer;
 
 void pwlayer_init(PWLayer *layer, PWShader *s, PWMat4 projection_matrix);
+
+//whenever possible, pwlayer_reset should be used if the layer is reused
+void pwlayer_reset(PWLayer *layer);
 void pwlayer_close(PWLayer *layer);
 
-//add a renderable object, renderable is copied internally and
+//add a renderable object, PWLayer creates a shallow copy
 //a reference to that copy is returned. PWLayer will close the renderable.
 //Usage:
 //1. Create renderable

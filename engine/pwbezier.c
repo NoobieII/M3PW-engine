@@ -63,5 +63,6 @@ inline float pwbezier_eval(PWBezier *b, float t){
 
 inline float pwbezier_add(PWBezier *b, float delta){
 	b->t += delta;
+	b->t -=(int)(b->t);
 	return pwbezier_eval(b, b->t);
 }

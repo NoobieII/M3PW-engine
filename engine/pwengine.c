@@ -335,7 +335,7 @@ void pwengine_free(PWEngine *e){
 	free(e);
 	IMG_Quit();
 	TTF_Quit();
-	SDLNet_Quit();
+	if(e->net_thread) SDLNet_Quit();
 	SDL_Quit();
 }
 
@@ -368,7 +368,8 @@ void pwengine_update(PWEngine *e){
 			object = (PWObject*) hashtable_next(e->objects);
 		}
 	}
-		
+	e->mouse_delta_x = 0;
+	e->mouse_delta_y = 0;
 	
 	//clear all events
 	e->is_left_button_pressed = 0;
@@ -411,23 +412,29 @@ void      pwengine_poll_events(PWEngine *e){
 		//for now do nothing
 		switch(event.type){
 		case SDL_MOUSEMOTION:
+			e->mouse_delta_x = event.motion.x - e->mouse_x;
+			e->mouse_delta_y = event.motion.y - e->mouse_y;
 			e->mouse_x = event.motion.x;
 			e->mouse_y = event.motion.y;
-			printf("mouse at (%d, %d)\n", e->mouse_x, e->mouse_y);
+			//printf("mouse at (%d, %d)\n", e->mouse_x, e->mouse_y);
+			//printf("mouse at %.2f %.2f\n", pwengine_mouse_x(e), pwengine_mouse_y(e));
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			switch(event.button.button){
 			case SDL_BUTTON_LEFT:
 				e->is_left_button_pressed = 1;
-				printf("mouse left button pressed\n");
+				e->is_left_button_held = 1;
+				//printf("mouse left button pressed\n");
 				break;
 			case SDL_BUTTON_RIGHT:
 				e->is_right_button_pressed = 1;
-				printf("mouse right button pressed\n");
+				e->is_right_button_held = 1;
+				//printf("mouse right button pressed\n");
 				break;
 			case SDL_BUTTON_MIDDLE:
 				e->is_middle_button_pressed = 1;
-				printf("mouse middle button pressed\n");
+				e->is_middle_button_held = 1;
+				//printf("mouse middle button pressed\n");
 				break;
 			}
 			break;
@@ -435,15 +442,18 @@ void      pwengine_poll_events(PWEngine *e){
 			switch(event.button.button){
 			case SDL_BUTTON_LEFT:
 				e->is_left_button_lifted = 1;
-				printf("mouse left button lifted\n");
+				e->is_left_button_held = 0;
+				//printf("mouse left button lifted\n");
 				break;
 			case SDL_BUTTON_RIGHT:
 				e->is_right_button_lifted = 1;
-				printf("mouse right button lifted\n");
+				e->is_right_button_held = 0;
+				//printf("mouse right button lifted\n");
 				break;
 			case SDL_BUTTON_MIDDLE:
 				e->is_middle_button_lifted = 1;
-				printf("mouse middle button lifted\n");
+				e->is_middle_button_held = 0;
+				//printf("mouse middle button lifted\n");
 				break;
 			}
 			break;
@@ -451,7 +461,7 @@ void      pwengine_poll_events(PWEngine *e){
 			e->scroll_x = event.wheel.x;
 			e->scroll_y = event.wheel.y;
 			
-			printf("mouse scroll event (%d, %d)\n", e->scroll_x, e->scroll_y);
+			//printf("mouse scroll event (%d, %d)\n", e->scroll_x, e->scroll_y);
 			break;
 		case SDL_KEYDOWN:
 			keyname = SDL_GetKeyName(event.key.keysym.sym);
@@ -466,9 +476,9 @@ void      pwengine_poll_events(PWEngine *e){
 			}
 			*(int*)(hashtable_at_str(e->is_key_held, keyname)) = 1;
 			
-			fprintf(stderr, "key %s scancode %s was pressed\n",
-				SDL_GetKeyName(event.key.keysym.sym),
-				SDL_GetScancodeName(event.key.keysym.scancode));
+			//fprintf(stderr, "key %s scancode %s was pressed\n",
+				//SDL_GetKeyName(event.key.keysym.sym),
+				//SDL_GetScancodeName(event.key.keysym.scancode));
 			break;
 		case SDL_KEYUP:
 			keyname = SDL_GetKeyName(event.key.keysym.sym);
@@ -483,21 +493,22 @@ void      pwengine_poll_events(PWEngine *e){
 			}
 			*(int*)(hashtable_at_str(e->is_key_held, keyname)) = 0;
 			
-			printf("key %s scancode %s was lifted\n",
-				keyname,
-				SDL_GetScancodeName(event.key.keysym.scancode));
+			//printf("key %s scancode %s was lifted\n",
+				//keyname,
+				//SDL_GetScancodeName(event.key.keysym.scancode));
 			break;
 		case SDL_TEXTINPUT:
 			strcat(e->text_input, event.text.text);
-			printf("received textinput event, text_input_ = %s\n", e->text_input);
+			//printf("received textinput event, text_input_ = %s\n", e->text_input);
 			break;
 		case SDL_TEXTEDITING:
-			printf("received textediting event\n");
+			//printf("received textediting event\n");
 			break;
 		case SDL_WINDOWEVENT:
-			e->width = event.window.data1;
-			e->height = event.window.data2;
+			//printf("received window event\n");
 			if(event.window.event == SDL_WINDOWEVENT_RESIZED){
+				e->width = event.window.data1;
+				e->height = event.window.data2;
 				glViewport(0, 0, e->width, e->height);
 			}
 			break;
@@ -517,8 +528,15 @@ int       pwengine_is_quit(PWEngine *e){
 }
 
 void      pwengine_render(PWEngine *e){
+	int i;
 	//draw the screen
 	//SDL_RenderPresent(e->renderer);
+	
+	for(i = 0; i < 10; ++i){
+		if(e->layers_active[i]){
+			pwlayer_render(&e->layers[i]);
+		}
+	}
 	
 	//check for openGL issues
 	GLenum error = glGetError();
@@ -588,6 +606,58 @@ int pwengine_is_key_held(PWEngine *e, const char *keyname){
 		return 0;
 	}
 	return *(int*)(hashtable_at_str(e->is_key_held, keyname));
+}
+
+int pwengine_is_left_button_pressed(PWEngine *e){
+	return e->is_left_button_pressed;
+}
+
+int pwengine_is_right_button_pressed(PWEngine *e){
+	return e->is_right_button_pressed;
+}
+
+int pwengine_is_middle_button_pressed(PWEngine *e){
+	return e->is_middle_button_pressed;
+}
+
+int pwengine_is_left_button_lifted(PWEngine *e){
+	return e->is_left_button_lifted;
+}
+
+int pwengine_is_right_button_lifted(PWEngine *e){
+	return e->is_right_button_lifted;
+}
+
+int pwengine_is_middle_button_lifted(PWEngine *e){
+	return e->is_middle_button_lifted;
+}
+
+int pwengine_is_left_button_held(PWEngine *e){
+	return e->is_left_button_held;
+}
+
+int pwengine_is_right_button_held(PWEngine *e){
+	return e->is_right_button_held;
+}
+
+int pwengine_is_middle_button_held(PWEngine *e){
+	return e->is_middle_button_held;
+}
+
+float pwengine_mouse_x(PWEngine *e){
+	return 2.0f * e->mouse_x / e->width - 1;
+}
+
+float pwengine_mouse_y(PWEngine *e){
+	return -2.0f * e->mouse_y / e->height + 1;
+}
+
+float pwengine_mouse_delta_x(PWEngine *e){
+	return 2.0f * e->mouse_delta_x / e->width;
+}
+
+float pwengine_mouse_delta_y(PWEngine *e){
+	return -2.0f * e->mouse_delta_y / e->height;
 }
 
 const char *pwengine_text_input(PWEngine *e){

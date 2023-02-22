@@ -1,0 +1,28 @@
+PWMODEL
+shape.txt
+texture.png
+num_parts 24
+pelvis   0 31 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -0 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 -0 0 1 num_group_end 0
+l_leg1   31 41 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.3125 0 -0 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.3125 -0 0 1 num_group_end 0
+l_leg2   41 46 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.514255 1.506751 -0.822071 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.201755 -1.506751 0.82207 1 num_group_end 0
+l_foot1  46 51 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.505219 1.614881 0.199203 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.009036 -0.10813 -1.021273 1 num_group_end 0
+l_foot2  51 56 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.496183 2.896088 -0.34384 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.009036 -1.281207 0.543043 1 num_group_end 4
+r_leg1   56 66 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.3125 0 -0 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.3125 -0 0 1 num_group_end 0
+r_leg2   66 71 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.514255 1.506751 -0.822071 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.201755 -1.506751 0.82207 1 num_group_end 0
+r_foot1  71 76 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.505219 1.614881 0.199203 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.009036 -0.10813 -1.021273 1 num_group_end 0
+r_foot2  76 81 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.496183 2.896088 -0.34384 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.009036 -1.281207 0.543043 1 num_group_end 4
+chest    81 112 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 -0.353553 -0.353553 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 0.353553 0.353553 1 num_group_end 0
+l_arm1   112 122 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.906958 -1.453932 -0.16814 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.906958 1.100379 -0.185413 1 num_group_end 0
+l_arm2   122 127 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.952883 -0.373799 -0.116922 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.045925 -1.080134 -0.051218 1 num_group_end 0
+l_hand   127 132 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.977167 0.403138 -0.256364 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.024284 -0.776937 0.139442 1 num_group_end 3
+r_arm1   132 142 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.906958 -1.453932 -0.16814 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.906958 1.100379 -0.185413 1 num_group_end 0
+r_arm2   142 147 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.952883 -0.373799 -0.116922 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.045925 -1.080134 -0.051218 1 num_group_end 0
+r_hand   147 152 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.977167 0.403138 -0.256364 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.024284 -0.776937 0.139442 1 num_group_end 3
+neck     152 159 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 -1.991048 -0.075973 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 1.637495 -0.277581 1 num_group_end 0
+head     159 204 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 -2.917432 -0.201597 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 0.926384 0.125625 1 num_group_end 0
+r_ear    204 209 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.1875 -3.293875 -0.249315 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.1875 0.376443 0.047717 1 num_group_end 1
+l_ear    209 214 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0.1875 -3.293875 -0.249315 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 -0.1875 0.376443 0.047717 1 num_group_end 1
+mouth    214 221 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 -2.768969 -0.522906 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 -0.148463 0.321309 1 num_group_end 4
+tail1    221 228 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0.353553 0.353553 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 -0.353553 -0.353553 1 num_group_end 0
+tail2    228 235 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.028572 0.357701 1.185119 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.028572 -0.004147 -0.831566 1 num_group_end 0
+tail3    235 256 detransform 1 0 0 0 0 1 0 0 0 0 1 0 -0.044643 -0.359672 1.60445 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0.016071 0.717373 -0.419331 1 num_group_end 4

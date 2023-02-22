@@ -50,6 +50,8 @@ typedef struct PWEngine{
 	int is_quit;
 	int mouse_x;
 	int mouse_y;
+	int mouse_delta_x;
+	int mouse_delta_y;
 	int scroll_x;
 	int scroll_y;
 	int is_left_button_pressed;
@@ -58,6 +60,9 @@ typedef struct PWEngine{
 	int is_left_button_lifted;
 	int is_right_button_lifted;
 	int is_middle_button_lifted;
+	int is_left_button_held;
+	int is_right_button_held;
+	int is_middle_button_held;
 	HashTable *is_key_pressed;
 	HashTable *is_key_lifted;
 	HashTable *is_key_held;
@@ -115,6 +120,19 @@ void      pwengine_sleep_until_next_frame(PWEngine *e);
 int       pwengine_is_key_pressed(PWEngine *e, const char *keyname);
 int       pwengine_is_key_lifted(PWEngine *e, const char *keyname);
 int       pwengine_is_key_held(PWEngine *e, const char *keyname);
+int       pwengine_is_left_button_pressed(PWEngine *e);
+int       pwengine_is_right_button_pressed(PWEngine *e);
+int       pwengine_is_middle_button_pressed(PWEngine *e);
+int       pwengine_is_left_button_lifted(PWEngine *e);
+int       pwengine_is_right_button_lifted(PWEngine *e);
+int       pwengine_is_middle_button_lifted(PWEngine *e);
+int       pwengine_is_left_button_held(PWEngine *e);
+int       pwengine_is_right_button_held(PWEngine *e);
+int       pwengine_is_middle_button_held(PWEngine *e);
+float     pwengine_mouse_x(PWEngine *e);
+float     pwengine_mouse_y(PWEngine *e);
+float     pwengine_mouse_delta_x(PWEngine *e);
+float     pwengine_mouse_delta_y(PWEngine *e);
 
 //returns any text typed by the keyboard. If there is none, NULL is returned
 const char *pwengine_text_input(PWEngine *e);

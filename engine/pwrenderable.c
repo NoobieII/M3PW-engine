@@ -8,6 +8,9 @@
 #include <GL/glew.h>
 #include "pwrenderable.h"
 
+#define READ_VEC3(IN, VEC3) fscanf(IN, "%f %f %f", VEC3.x, VEC3.y, VEC3.z)
+#define READ_BEZIER(IN, BEZ)  fscanf(IN, "%f %f %f %f", BEZ.p[0], BEZ.p[1], BEZ.p[2], BEZ.p[3])
+
 void pwrenderable_init_rect(PWRenderable *r, PWVec3 position, PWVec2 size, unsigned int color){
 	r->index_count = 6;
 	r->indices = (unsigned short*) malloc(sizeof(unsigned short) * 6);
@@ -82,6 +85,12 @@ void pwrenderable_close(PWRenderable *r){
 	if(r->font){
 		free(r->font);
 	}
+	r->indices = NULL;
+	r->p = NULL;
+	r->uv = NULL;
+	r->color = NULL;
+	r->n = NULL;
+	r->font = NULL;
 }
 
 inline void pwrenderable_set_position_size(PWRenderable *r, PWVec3 position, PWVec2 size){
@@ -244,6 +253,8 @@ void pwrenderable_init_cube(PWRenderable *r, float width, unsigned int color, PW
 	int i;
 	float l = width / 2.0f;
 	
+	pwrenderable_init_none(r);
+	
 	r->index_count = 36;
 	r->indices = (unsigned short*) malloc(sizeof(unsigned short) * r->index_count);
 	for(i = 0; i < 6; ++i){
@@ -321,6 +332,8 @@ void pwrenderable_init_box(PWRenderable *r, PWVec3 width, unsigned int color, PW
 	float y = width.y / 2;
 	float z = width.z / 2;
 	
+	pwrenderable_init_none(r);
+	
 	r->index_count = 36;
 	r->indices = (unsigned short*) malloc(sizeof(unsigned short) * r->index_count);
 	for(i = 0; i < 6; ++i){
@@ -366,10 +379,6 @@ void pwrenderable_init_box(PWRenderable *r, PWVec3 width, unsigned int color, PW
 		r->color[i] = color;
 	}
 	
-	r->tid = 0.0;
-	r->texture = NULL;
-	r->font = NULL;
-	r->str = NULL;
 	
 	r->n = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
 	r->n[0] = PWM_vec3(0, 0, 1);
@@ -399,6 +408,14 @@ void pwrenderable_init_none(PWRenderable *r){
 	r->font = NULL; 
 	r->str = NULL;    //reference to a string
 	r->n = NULL; //normals
+	/*
+	r->group_count = 0;
+	r->group_vertex_start = NULL;
+	r->group_vertex_end = NULL;
+	r->animation_count = 0;
+	r->animation_state = -1;
+	r->animations = NULL;
+	*/
 }
 
 //add an n-sided shape
@@ -498,6 +515,12 @@ void pwrenderable_add_r(PWRenderable *r, const PWRenderable *src){
 	
 	r->vertex_count += src->vertex_count;
 	r->index_count += src->index_count;
+	
+	
+	printf("indices\n");
+	for(i = 0; i < r->index_count; i += 3){
+		printf("%d %d %d\n", r->indices[i], r->indices[i+1], r->indices[i+2]);
+	}
 }
 
 void pwrenderable_get_vertex(PWRenderable *r, int n, PWVec3 *position, PWVec2 *uv, unsigned int *color, PWVec3 *normal){
@@ -712,9 +735,27 @@ int pwrenderable_save(PWRenderable *r, const char *filename, int recalculate_nor
 	return 0;
 }
 
+char *convert(char *s, float x)
+{
+    char *buf = malloc(100);
+    char *p;
+    int ch;
+
+	//original used %.10f
+    sprintf(buf, "%.6f", x);
+    p = buf + strlen(buf) - 1;
+    while (*p == '0' && *p-- != '.');
+    *(p+1) = '\0';
+    if (*p == '.') *p = '\0';
+    strcpy(s, buf);
+    free (buf);
+    return s;
+}
+
 int pwrenderable_save2(PWRenderable *r, const char *filename){
 	int i;
 	FILE *out;
+	char str[3][20];
 	
 	out = fopen(filename, "wt");
 	if(!out){
@@ -723,7 +764,11 @@ int pwrenderable_save2(PWRenderable *r, const char *filename){
 	
 	fprintf(out, "PWR1\n\nVERTICES %d\n", r->vertex_count);
 	for(i = 0; i < r->vertex_count; ++i){
-		fprintf(out, "%d position %f %f %f uv %f %f color %x normal %f %f %f\n", i, r->p[i].x, r->p[i].y, r->p[i].z, r->uv[i].x, r->uv[i].y, r->color[i], r->n[i].x, r->n[i].y, r->n[i].z);
+		fprintf(out, "%d ", i);
+		fprintf(out, "position %s %s %s ", convert(str[0], r->p[i].x), convert(str[1], r->p[i].y), convert(str[2], r->p[i].z));
+		fprintf(out, "uv %s %s color %x ", convert(str[0], r->uv[i].x), convert(str[1], r->uv[i].y), r->color[i]);
+		fprintf(out, "normal %s %s %s\n", convert(str[0], r->n[i].x), convert(str[1], r->n[i].y), convert(str[2], r->n[i].z));
+		//fprintf(out, "%d position %f %f %f uv %f %f color %x normal %f %f %f\n", i, r->p[i].x, r->p[i].y, r->p[i].z, r->uv[i].x, r->uv[i].y, r->color[i], r->n[i].x, r->n[i].y, r->n[i].z);
 	}
 	
 	fprintf(out, "\nINDICES %d\n", r->index_count);
@@ -742,7 +787,7 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 	PWVec3 normal;
 	char str[16];
 	FILE *in;
-	int i;
+	int i, j;
 	
 	//don't actually count the vertices, but check the shapes
 	int vertex = 0;
@@ -781,7 +826,7 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 	}
 	else if(strcmp(str, "PWR1\n") == 0){
 		fscanf(in, "%*s %d", &r->vertex_count); //expect VERTICES <vertex_count>
-		printf("reading %d vertices\n", r->vertex_count);
+		//printf("reading %d vertices\n", r->vertex_count);
 		//expect <vertex number> <vertex data>
 		r->p = (PWVec3*) malloc(sizeof(PWVec3) * r->vertex_count);
 		r->uv = (PWVec2*) malloc(sizeof(PWVec2) * r->vertex_count);
@@ -802,8 +847,79 @@ int pwrenderable_load(PWRenderable *r, const char *filename){
 		for(i = 0; i < r->index_count; ++i){
 			fscanf(in, "%d", &vertex); //we need to use an int type with fscanf
 			r->indices[i] = vertex;
-			printf("%d", vertex);
+			//printf("%d", vertex);
 		}
+		/*
+		//expect GROUPS
+		if(fscanf(in, "%*s %d", &r->group_count) != 1 || r->group_count == 0){
+			printf("no groups found in %s\n", filename);
+		}
+		if(r->group_count > 0){
+			r->group_vertex_start = (unsigned short*) malloc(sizeof(unsigned short) * r->group_count);
+			r->group_vertex_end = (unsigned short*) malloc(sizeof(unsigned short) * r->group_count);
+			for(i = 0; i < r->group_count; ++i){
+				fscanf(in, "%d", &vertex);
+				r->group_vertex_start[i] = vertex;
+				fscanf(in, "%d", &vertex);
+				r->group_vertex_end[i] = vertex;
+			}
+		}
+		//expect ANIMATIONS
+		if(fscanf(in, "%*s %d", &r->animation_count) != 1 || r->animation_count == 0){
+			printf("no animations found in %s\n", filename);
+		}
+		if(r->animation_count > 0){
+			r->animations = (PWAnimation*) malloc(sizeof(PWAnimation*) * r->animation_count);
+			for(i = 0; i < r->animation_count; ++i){
+				//expect the following strings in the file:
+				//period
+				//body_count
+				//rotation_axis
+				//rotation_axis_offset
+				//rotation
+				//scale_x
+				//scale_y
+				//scale_z
+				//translation_x
+				//translation_y
+				//translation_z
+				
+				fscanf(in, "%*s %f", &r->animations[i].period);
+				fscanf(in, "%*s %d", &r->animations[i].body_count);
+				fscanf(in, "%*s");
+				READ_VEC3(in, &r->animations[i].rotation_axis);
+				fscanf(in, "%*s");
+				READ_VEC3(in, &r->animations[i].rotation_axis_offset);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].rotation);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].rotation);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].scale_x);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].scale_y);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].scale_z);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].translation_x);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].translation_y);
+				fscanf(in, "%*s");
+				READ_BEZIER(in, &r->animations[i].translation_z);
+				
+				if(r->animations[i].body_count > 0){
+					r->animations[i].body_animations = (PWBodyAnimation*) malloc(sizeof(PWBodyAnimation) * r->animations[i].body_count);
+					for(j = 0; j < r->animations[i].body_count; ++j){
+						
+						//Expect the following:
+						//rotation
+						//rotation_axis_offset
+						//rotatoin_axis
+					}
+				}
+			} //for each animation
+		} //if(animation_count > 0)
+		*/
 	}
 	else{
 		fclose(in);

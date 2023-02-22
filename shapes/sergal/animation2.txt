@@ -1,0 +1,27 @@
+PWANIMATION
+num_parts 24
+period .6
+pelvis   0 rotation_axis 1 0 0 rotation 30 30 30 30  scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_leg1   0 rotation_axis 1 0 0 rotation -30 90 -120 -30 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_leg2   0 rotation_axis 1 0 0 rotation 0 -60 30 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_foot1  .5 rotation_axis 1 0 0 rotation 60 -60 0 60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_foot2  0 rotation_axis 1 0 0 rotation 0 -60 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_leg1   .5 rotation_axis 1 0 0 rotation -30 90 -120 -30 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_leg2   .5 rotation_axis 1 0 0 rotation 0 -60 30 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_foot1  0 rotation_axis 1 0 0 rotation 60 -60 0 60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_foot2  .5 rotation_axis 1 0 0 rotation 0 -60 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+chest    0 rotation_axis 0 0 1 rotation 0 -10 10 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_arm1   0 rotation_axis 1 0 0 rotation -60 -120 0 -60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 .5 -.5 0
+l_arm2   .8 rotation_axis 1 0 0 rotation -60 -120 0 -60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_hand   0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_arm1   .5 rotation_axis 1 0 0 rotation -60 -120 0 -60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 .2 -.2 0
+r_arm2   .3 rotation_axis 1 0 0 rotation -60 -120 0 -60 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_hand   0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+neck     0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+head     0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+r_ear    0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+l_ear    0 rotation_axis 1 0 0 rotation 0 0 0 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+mouth    0 rotation_axis 1 0 0 rotation -20 -20 -20 -20 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+tail1    0 rotation_axis 0 1 0 rotation 0 30 -30 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+tail2    0 rotation_axis 1 0 0 rotation -10 -10 -10 -10 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0
+tail3    .3 rotation_axis 0 1 0 rotation 0 -30 30 0 scale_x 1 1 1 1 scale_y 1 1 1 1 scale_z 1 1 1 1 translation_x 0 0 0 0 translation_y 0 0 0 0 translation_z 0 0 0 0

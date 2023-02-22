@@ -71,6 +71,10 @@ typedef struct PWVec4{
 	PWMATRIX_TYPE x, y, z, w;
 } PWVec4;
 
+typedef struct PWQuat{
+	float x, y, z, w;
+} PWQuat;
+
 //collision structs
 
 typedef struct PWRay{
@@ -223,13 +227,20 @@ PWVec3 PWM_normalize3(PWVec3 v);
 void PWM_normalize3_ref(PWVec3 *result, PWVec3 *v);
 
 //get vector length
-//ref has about 20% slower performance
+//ref has about 20% slower performance (PWVec3 only tested)
+float PWM_norm2(PWVec2 v);
 float PWM_norm3(PWVec3 v);
 float PWM_norm3_ref(PWVec3 *v);
 
 //angle between 2 vectors in radians
 float PWM_angle3(PWVec3 v1, PWVec3 v2);
 
+//quaternions
+PWQuat PWM_quat(float x, float y, float z, float w);
+PWQuat PWM_quat_mul(PWQuat p, PWQuat q);
+PWQuat PWM_quat_from_euler(float x, float y, float z);
+PWVec3 PWM_quat_to_euler(PWQuat q);
+PWMat4 PWM_quat_mat4(PWQuat q);
 
 //direction must be normalized
 PWRay PWM_ray(PWVec3 origin, PWVec3 direction);
@@ -247,11 +258,13 @@ PWAabb PWM_aabb(PWVec3 v1, PWVec3 v2);
 void PWM_ray_detransform(PWRay *r, PWMat4 *transform);
 
 //distance from a vector point to plane
-//classify a point with respect to the plane... returns one of the macro defs
+//classify a point with respect to the plane... returns PWM_FRONT, PWM_BACK, PWM_PLANAR
 //classify a polygon with respect to the plane... returns PWM_CLIPPED, PWM_CULLED, PWM_VISIBLE
+//return a projection of a vector on a plane.
 float PWM_plane_distance(PWPlane *p, PWVec3 v);
 int PWM_plane_classify(PWPlane *p, PWVec3 v);
 int PWM_plane_classify_polygon(PWPlane *p, PWPolygon *polygon);
+PWVec3 PWM_plane_proj(PWPlane *p, PWVec3 v);
 
 //intersection functions (returns nonzero if intersects)
 

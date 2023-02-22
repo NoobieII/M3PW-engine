@@ -25,6 +25,20 @@ void pwlayer_init(PWLayer *layer, PWShader *s, PWMat4 projection_matrix){
 	pwshader_set_uniform_mat4(s, "pr_matrix", projection_matrix); 
 }
 
+void pwlayer_reset(PWLayer *layer){
+	int i;
+	for(i = 0; i < layer->rlen; ++i){
+		pwrenderable_close(layer->renderables[i]);
+		free(layer->renderables[i]);
+	}
+	layer->rlen = 0;
+	layer->group_len = 0;
+	for(i = 0; i < layer->transformations_len; ++i){
+		free(layer->group_transformations[i]);
+	}
+	layer->transformations_len = 0;
+}
+
 void pwlayer_close(PWLayer *layer){
 	int i;
 	

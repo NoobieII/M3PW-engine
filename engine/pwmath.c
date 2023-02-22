@@ -470,6 +470,8 @@ PWMat4 PWM_inv(PWMat4 m){
 	//augmented matrix
 	PWMat4 am;
 	
+	PWM_inv_ref(&am, &m);
+	/*
 	am = PWM_eye(4);
 	
 	#if defined PWMATRIX_COLUMN_MAJOR
@@ -544,7 +546,7 @@ PWMat4 PWM_inv(PWMat4 m){
 	#if defined PWMATRIX_COLUMN_MAJOR
 	PWM_transpose_ref(&am);
 	#endif
-	
+	*/
 	//return augmented matrix
 	return am;
 }
@@ -923,6 +925,13 @@ void PWM_normalize3_ref(PWVec3 *result, PWVec3 *v){
 	result->z = v->z * invs;
 }
 
+float PWM_norm2(PWVec2 v){
+	float squared = v.x * v.x + v.y * v.y;
+	float rt;
+	_mm_store_ss(&rt, _mm_sqrt_ss(_mm_set_ss(squared)));
+	return rt;
+}
+
 float PWM_norm3(PWVec3 v){
 	float squared = v.x * v.x + v.y * v.y + v.z * v.z;
 	float rt;
@@ -939,6 +948,107 @@ float PWM_norm3_ref(PWVec3 *v){
 
 float PWM_angle3(PWVec3 v1, PWVec3 v2){
 	return (float) acos( (PWM_dot3(v1, v2)) / (PWM_norm3(v1) * PWM_norm3(v2)) );
+}
+
+PWQuat PWM_quat(float x, float y, float z, float w){
+	PWQuat q;
+	q.x = x; q.y = y; q.z = z; q.w = w;
+	return q;
+}
+
+PWQuat PWM_quat_mul(PWQuat p, PWQuat q){
+	return PWM_quat(
+		p.w*q.x + p.x*q.w + p.y*q.z - p.z*q.y,
+		p.w*q.y + p.y*q.w + p.z*q.x - p.x*q.z,
+		p.w*q.z + p.z*q.w + p.x*q.y - p.y*q.x,
+		p.w*q.w - p.x*q.x - p.y*q.y - p.z*q.z );
+}
+
+PWQuat PWM_quat_from_euler(float x, float y, float z){
+	float cX, cY, cZ, sX, sY, sZ, cYcZ, sYsZ, cYsZ, sYcZ;
+	
+	x *= .5;
+	y *= .5;
+	z *= .5;
+	
+	cX = cos(x);
+	cY = cos(y);
+	cZ = cos(z);
+	
+	sX = sin(x);
+	sY = sin(y);
+	sZ = sin(z);
+	
+	cYcZ = cY * cZ;
+	sYsZ = sY * sZ;
+	cYsZ = cY * sZ;
+	sYcZ = sY * cZ;
+	
+	return PWM_quat(
+		sX * cYcZ - cX * sYsZ,
+		cX * sYcZ + sX * cYsZ,
+		cX * cYsZ - sX * sYcZ,
+		cX * cYcZ + sX * sYsZ );
+}
+
+PWVec3 PWM_quat_to_euler(PWQuat q){
+	float sinr_cosp, cosr_cosp, sinp, cosp, siny_cosp, cosy_cosp;
+	PWVec3 angles;
+	
+	sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+    cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+    angles.x = atan2(sinr_cosp, cosr_cosp);
+
+    // pitch (y-axis rotation)
+    sinp = sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+    cosp = sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+    angles.y = 2 * atan2(sinp, cosp) - M_PI / 2;
+
+    // yaw (z-axis rotation)
+    siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+    cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+    angles.z = atan2(siny_cosp, cosy_cosp);
+	
+	return angles;
+}
+
+PWMat4 PWM_quat_mat4(PWQuat q){
+	float wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
+	PWMat4 m;
+	
+	x2 = q.x + q.x;
+	y2 = q.y + q.y;
+	z2 = q.z + q.z;
+	
+	xx = q.x * x2;
+	xy = q.x * y2;
+	xz = q.x * z2;
+	yy = q.y * y2;
+	yz = q.y * z2;
+	zz = q.z * z2;
+	wx = q.w * x2;
+	wy = q.w * y2;
+	wz = q.w * z2;
+	
+
+	m.elements[0] = 1.0f - (yy + zz);
+	m.elements[1] = xy - wz;
+	m.elements[2] = xz + wy;
+	m.elements[3] = 0.0f;
+	m.elements[4] = xy + wz;
+	m.elements[5] = 1.0f - (xx + zz);
+	m.elements[6] = yz - wx;
+	m.elements[7] = 0.0f;
+	m.elements[8] = xz - wy;
+	m.elements[9] = yz + wx;
+	m.elements[10] = 1.0f - (xx + yy);
+	m.elements[11] = 0.0f;
+	m.elements[12] = 0.0f;
+	m.elements[13] = 0.0f;
+	m.elements[14] = 0.0f;
+	m.elements[15] = 1.0f;
+	
+	return m;
 }
 
 inline PWRay PWM_ray(PWVec3 origin, PWVec3 direction){
@@ -1002,7 +1112,7 @@ inline float PWM_plane_distance(PWPlane *p, PWVec3 v){
 }
 
 inline int PWM_plane_classify(PWPlane *p, PWVec3 v){
-	float f = PWM_dot3(v, p->normal) - p->distance;
+	float f = PWM_dot3(v, p->normal) + p->distance;
 	if(f > 0.0001) return PWM_FRONT;
 	if(f < -0.0001) return PWM_BACK;
 	return PWM_PLANAR;

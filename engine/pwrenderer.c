@@ -118,12 +118,12 @@ void pwrenderer_submit(PWRenderer *renderer, PWRenderable *renderable){
 	PWVertexData *vertex_data;
 	int max_textures;
 	
-	if(renderable->vertex_count == 0){
-		return;
-	}
+	//if(renderable->vertex_count == 0){
+	//	return;
+	//}
 	
 	//skip if the renderable is transparent
-	if(renderable->c[3] == 0x00){
+	if(renderable->color && renderable->c[3] == 0x00){
 		return;
 	}
 	
@@ -197,6 +197,7 @@ void pwrenderer_submit(PWRenderer *renderer, PWRenderable *renderable){
 			//PWM_mul_vec3_notranslate_ref(&vertex_data->normal, &renderer->transformation_stack[renderer->stack_len - 1], &renderable->n[i]);
 			vertex_data++;
 			*(index_data++) = renderer->vertex_count;
+			//*(index_data++) = renderer->index_count;
 			renderer->vertex_count++;
 			renderer->index_count++;
 		}

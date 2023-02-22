@@ -88,7 +88,7 @@ int pwrenderable_transform_uv(PWRenderable *r, int x_division, int y_division, i
 void pwrenderable_reverse_vertex(PWRenderable *r);
 void pwrenderable_reverse_index(PWRenderable *r);
 
-//remove all vertices, but don't close the renderable
+//closes the renderable and calls pwrenderable_init_none()
 void pwrenderable_reset(PWRenderable *r);
 
 //save the renderable to a file, returns 0 if successful, -1 if not

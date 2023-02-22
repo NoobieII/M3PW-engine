@@ -1,0 +1,5 @@
+PWMODEL
+shape.txt
+texture.png
+num_parts INSERT_YER_NUMBER
+vertices 0 10 detransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 transform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 num_group_end 0
