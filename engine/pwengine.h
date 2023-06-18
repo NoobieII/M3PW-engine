@@ -139,6 +139,11 @@ const char *pwengine_text_input(PWEngine *e);
 
 int       pwengine_play_sound(PWEngine *e, const char *filename);
 void      pwengine_stop_sound(PWEngine *e, int sound_id);
+void      pwengine_set_sound_level(PWEngine *e, int sound_id, float level);
+void      pwengine_fade_in_sound(PWEngine *e, int sound_id, float len);
+void      pwengine_fade_out_sound(PWEngine *e, int sound_id, float len);
+void      pwengine_lp_filter_sound(PWEngine *e, int sound_id, int freq);
+void      pwengine_no_filter_sound(PWEngine *e, int sound_id);
 void      pwengine_clear_sounds(PWEngine *e);
 
 void      pwengine_add_object(PWEngine *e, PWObject *o);

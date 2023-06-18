@@ -1,6 +1,8 @@
 //Lithio (The developer's pseudonym)
 //June 11, 2022
 
+//added features for filter on 17 Jun 23
+
 #ifndef M3PW_PWSOUND_H
 #define M3PW_PWSOUND_H
 

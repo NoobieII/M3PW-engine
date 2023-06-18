@@ -687,6 +687,8 @@ void pwengine_audio_callback(void* userdata, Uint8* stream, int len){
 	short *buffer = (short*) malloc(len);
 	int *stream_unclipped = (int*) malloc(len * 4);
 	
+	float f1, f2;
+	
 	//set stream to zero
 	memset(stream, 0, len);
 	memset(stream_unclipped, 0, len * 2);
@@ -751,6 +753,96 @@ void pwengine_audio_callback(void* userdata, Uint8* stream, int len){
 					result = ov_read(&sound->vf, buffer, len*sound->num_channels/2 - i, &bitstream);
 					result /= sizeof(short);
 					
+					printf("a");
+					if(sound_clip->filter_mode & 0x08){
+						if(sound->num_channels == 1){
+							f1 = sound_clip->last_sample[0];
+							f2 = sound_clip->filter;
+							for(k = 0; k < result; ++k){
+								*(buffer_sample) = f2 * (*buffer_sample) + (1 - f2) * f1;
+								f1 = *(buffer_sample++);
+							}
+							sound_clip->last_sample[0] = f1;
+						}
+						else if(sound->num_channels == 2){
+							f1 = sound_clip->last_sample[0];
+							f2 = sound_clip->filter;
+							for(k = 0; k < result; k+=2){
+								*(buffer_sample) = f2 * (*buffer_sample) + (1 - f2) * f1;
+								f1 = *buffer_sample;
+								buffer_sample += 2;
+							}
+							sound_clip->last_sample[0] = f1;
+							
+							f1 = sound_clip->last_sample[1];
+							buffer_sample = buffer + 1;
+							for(k = 0; k < result; k+=2){
+								*(buffer_sample) = f2 * (*buffer_sample) + (1 - f2) * f1;
+								f1 = *buffer_sample;
+								buffer_sample += 2;
+							}
+							sound_clip->last_sample[1] = f1;
+						}
+						buffer_sample = buffer;
+					}
+					if(sound_clip->filter_mode & 0x04){
+						//fade out
+						f1 = 1.0f / sound_clip->fade_length;
+						f2 = f1 * (sound_clip->fade_length - sound_clip->fade_time);
+						
+						if(sound->num_channels == 1){
+							for(k = 0; k < result; ++k){
+								f2 -= f1;
+								if(f2 < 0) break;
+								*(buffer_sample++) *= f2;
+							}
+						}
+						else if(sound->num_channels == 2){
+							for(k = 0; k < result; k+=2){
+								f2 -= f1;
+								if(f2 < 0) break;
+								*(buffer_sample++) *= f2;
+								*(buffer_sample++) *= f2;
+							}
+						}
+						for(; k < result; ++k) *(buffer_sample++) = 0;
+						
+						sound_clip->fade_time += k;
+						if(sound_clip->fade_time >= sound_clip->fade_length) delete_node = 1;
+						
+						buffer_sample = buffer;
+					}
+					else if(sound_clip->filter_mode & 0x02){
+						//fade in
+						f1 = 1.0f / sound_clip->fade_length;
+						f2 = f1 * sound_clip->fade_time;
+						
+						if(sound->num_channels == 1){
+							for(k = 0; k < result; ++k){
+								f2 += f1;
+								if(f2 > 1) break;
+								*(buffer_sample++) *= f2;
+							}
+						}
+						else if(sound->num_channels == 2){
+							for(k = 0; k < result; k+=2){
+								f2 += f1;
+								if(f2 > 1) break;
+								*(buffer_sample++) *= f2;
+								*(buffer_sample++) *= f2;
+							}
+						}
+						sound_clip->fade_time += k;
+						if(sound_clip->fade_time >= sound_clip->fade_length) sound_clip->filter_mode &= ~(0x06);
+						
+						buffer_sample = buffer;
+					}
+					if(sound_clip->filter_mode & 0x01){
+						f1 = sound_clip->sound_level;
+						for(k = 0; k < result; ++k) *(buffer_sample++) = *buffer_sample * f1;
+						buffer_sample = buffer;
+					}
+					
 					//copy the sound and add to the stream
 					if(sound->num_channels == 1){
 						//copy half the number of samples and distribute
@@ -765,6 +857,7 @@ void pwengine_audio_callback(void* userdata, Uint8* stream, int len){
 							*(sample++) += *(buffer_sample++);
 						}
 					}
+					
 					result *= sizeof(short);
 					i += result;
 					
@@ -772,6 +865,7 @@ void pwengine_audio_callback(void* userdata, Uint8* stream, int len){
 						++j;
 					}
 					
+					//if no audio decoded after 10 attempts, delete this node
 					if(j == 10){
 						if(sound->is_loop){
 							if(ov_pcm_seek(&sound->vf, sound->loop_start) != 0){
@@ -788,7 +882,9 @@ void pwengine_audio_callback(void* userdata, Uint8* stream, int len){
 			}
 		}
 		
+		
 		if(delete_node){
+			free(sound_clip->last_sample);
 			free(sound_clip);
 			
 			id = hashtable_key_i(e->sounds_playing);
@@ -840,6 +936,13 @@ int pwengine_play_sound(PWEngine *e, const char *filename){
 	
 	clip->sound = sound;
 	clip->pos = 0;
+	clip->filter_mode = 0;
+	clip->last_sample = malloc(sizeof(short) * sound->num_channels);
+	memset(clip->last_sample, 0, sizeof(short) * sound->num_channels);
+	clip->filter = 1.0f;
+	clip->fade_length = 44100;
+	clip->fade_time = 0;
+	clip->sound_level = 1.0f;
 	hashtable_set_at_int(e->sounds_playing, e->sound_id, clip);
 	
 	SDL_UnlockMutex(e->sound_mutex);
@@ -848,17 +951,74 @@ int pwengine_play_sound(PWEngine *e, const char *filename){
 }
 
 void pwengine_stop_sound(PWEngine *e, int sound_id){
-	void *sound_clip;
+	PWSoundClip *sound_clip;
 	
 	SDL_LockMutex(e->sound_mutex);
 	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
 	if(sound_clip){
+		free(sound_clip->last_sample);
 		free(sound_clip);
 	}
 	hashtable_remove_at_int(e->sounds_playing, sound_id);
 	SDL_UnlockMutex(e->sound_mutex);
 }
+
+void pwengine_set_sound_level(PWEngine *e, int sound_id, float level){
+	PWSoundClip *sound_clip;
+	SDL_LockMutex(e->sound_mutex);
+	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
 	
+	sound_clip->filter_mode |= 0x01;
+	sound_clip->sound_level = level;
+	
+	SDL_UnlockMutex(e->sound_mutex);
+}
+
+void pwengine_fade_in_sound(PWEngine *e, int sound_id, float len){
+	PWSoundClip *sound_clip;
+	SDL_LockMutex(e->sound_mutex);
+	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
+	
+	sound_clip->filter_mode |= 0x02;
+	sound_clip->fade_length = (int)(len * 44100);
+	sound_clip->fade_time = 0;
+	
+	SDL_UnlockMutex(e->sound_mutex);
+}
+
+void pwengine_fade_out_sound(PWEngine *e, int sound_id, float len){
+	PWSoundClip *sound_clip;
+	SDL_LockMutex(e->sound_mutex);
+	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
+	
+	sound_clip->filter_mode |= 0x04;
+	sound_clip->fade_length = (int)(len * 44100);
+	sound_clip->fade_time = 0;
+	
+	SDL_UnlockMutex(e->sound_mutex);
+}
+
+void pwengine_lp_filter_sound(PWEngine *e, int sound_id, int freq){
+	PWSoundClip *sound_clip;
+	SDL_LockMutex(e->sound_mutex);
+	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
+	
+	sound_clip->filter_mode |= 0x08;
+	sound_clip->filter = freq / 44100.0f;
+	
+	SDL_UnlockMutex(e->sound_mutex);
+}
+
+void pwengine_no_filter_sound(PWEngine *e, int sound_id){
+	PWSoundClip *sound_clip;
+	SDL_LockMutex(e->sound_mutex);
+	sound_clip = hashtable_at_int(e->sounds_playing, sound_id);
+	
+	sound_clip->filter_mode = 0;
+	
+	SDL_UnlockMutex(e->sound_mutex);
+}
+
 void pwengine_clear_sounds(PWEngine *e){
 	void *sound_clip;
 	int id;

@@ -1,28 +1,18 @@
 PWR1
 
-VERTICES 20
-0 position 0.584296 0.624992 -1.290686 uv 0 0 color ffffffff normal -0.726883 0.686501 0
-1 position 0.584296 0.374996 -0.165694 uv 0.25 0 color ffffffff normal 0.894287 0.447144 0
-2 position 0.584296 -0.249995 -0.290693 uv 0.5 0 color ffffffff normal 0.786133 -0.617676 0
-3 position 0.584296 -0.374993 -1.165687 uv 0.75 0 color ffffffff normal -0.682205 -0.730934 0
-4 position 0.584296 0.624992 -1.290686 uv 1 0 color ffffffff normal -0.726883 0.686501 0
-5 position -0.584296 0.624992 -1.290686 uv 0 1 color ffffffff normal -0.726883 0.686501 0
-6 position -0.584296 0.374996 -0.165694 uv 0.25 1 color ffffffff normal 0.894287 0.447144 0
-7 position -0.584296 -0.249995 -0.290693 uv 0.5 1 color ffffffff normal 0.786133 -0.617676 0
-8 position -0.584296 -0.374993 -1.165687 uv 0.75 1 color ffffffff normal -0.682205 -0.730934 0
-9 position -0.584296 0.624992 -1.290686 uv 1 1 color ffffffff normal -0.726883 0.686501 0
-10 position 0.426894 0.758112 2.459285 uv 0 0 color ffffffff normal -0.726883 0.686501 0
-11 position 0.491596 0.516634 1.334296 uv 0.25 0 color ffffffff normal 0.894287 0.447144 0
-12 position 0.653352 -0.087061 1.459295 uv 0.5 0 color ffffffff normal 0.786133 -0.617676 0
-13 position 0.685703 -0.2078 2.334286 uv 0.75 0 color ffffffff normal -0.682205 -0.730934 0
-14 position 0.426894 0.758112 2.459285 uv 1 0 color ffffffff normal -0.726883 0.686501 0
-15 position -0.701879 0.455669 2.459285 uv 0 1 color ffffffff normal -0.726883 0.686501 0
-16 position -0.637177 0.214191 1.334296 uv 0.25 1 color ffffffff normal 0.894287 0.447144 0
-17 position -0.475421 -0.389503 1.459295 uv 0.5 1 color ffffffff normal 0.786133 -0.617676 0
-18 position -0.44307 -0.510242 2.334286 uv 0.75 1 color ffffffff normal -0.682205 -0.730934 0
-19 position -0.701879 0.455669 2.459285 uv 1 1 color ffffffff normal -0.726883 0.686501 0
+VERTICES 10
+0 position -0.5 0.5 0 uv 0 0 color ffffffff normal -0.706909 0.706909 0
+1 position 0.5 0.5 0 uv 0.25 0 color ffffffff normal 0.706909 0.706909 0
+2 position 0.5 -0.5 0 uv 0.5 0 color ffffffff normal 0.706909 -0.706909 0
+3 position -0.5 -0.5 0 uv 0.75 0 color ffffffff normal -0.706909 -0.706909 0
+4 position -0.5 0.5 0 uv 1 0 color ffffffff normal -0.706909 0.706909 0
+5 position -0.5 0.5 0.999756 uv 0 1 color ffffffff normal -0.706909 0.706909 0
+6 position 0.5 0.5 0.999756 uv 0.25 1 color ffffffff normal 0.706909 0.706909 0
+7 position 0.5 -0.5 0.999756 uv 0.5 1 color ffffffff normal 0.706909 -0.706909 0
+8 position -0.5 -0.5 0.999756 uv 0.75 1 color ffffffff normal -0.706909 -0.706909 0
+9 position -0.5 0.5 0.999756 uv 1 1 color ffffffff normal -0.706909 0.706909 0
 
-INDICES 48
+INDICES 36
 0 5 1
 1 5 6
 1 6 2
@@ -31,11 +21,7 @@ INDICES 48
 3 7 8
 3 8 4
 4 8 9
-10 11 15
-11 16 15
-11 12 16
-12 17 16
-12 13 17
-13 18 17
-13 14 18
-14 19 18
+0 1 2
+0 2 3
+5 7 6
+5 8 7

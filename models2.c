@@ -324,6 +324,7 @@ int main(int argc, const char *argv[]){
 	indices_reordered = malloc(sizeof(unsigned short) * index_count);
 	
 	
+	memset(vertices_selected, 0, sizeof(PWVertexData*) * vertex_count);
 	memset(indices_reordered, 0, sizeof(unsigned short) * index_count);
 	
 	//draw a plane

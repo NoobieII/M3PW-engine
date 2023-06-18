@@ -13,10 +13,15 @@
 //A - Add new shape
 //E - Extrude from existing shape
 //B - Select by shape
-//
-//CONTROLS to be added
 //M - Mirror selection
 //C - Copy selection
+//Arrows - Change perspective
+//Keypad 1, 3, 7 - change perspective
+//Middle mouse button - change perspective
+//Middle mouse button + CTRL - zoom in/out
+//Shift - snap to nearest .125 or 15 degrees
+
+//Save is automatic
 
 //Display:
 
@@ -369,44 +374,62 @@ PWVec3 get_average_position_selection(PWVertexData **selected_vertices, int vert
 }
 
 int is_extrude_start(PWVec3 *p, int n, Shape *shape){
-	int i;
+	int i, j;
 	int pass = 0;
+	char *matches;
 	
 	if(!shape) return 0;
-	if(shape->type == SHAPE_EXTRUDE) ++pass;
-	if(shape->extrude.num_points == n) ++pass;
+	if(shape->type != SHAPE_EXTRUDE) return 0;
+	if(shape->extrude.num_points != n) return 0;
+	
+	matches = malloc(n);
+	memset(matches, 0, n);
 	
 	for(i = 0; i < shape->extrude.num_points; ++i){
-		if(shape->vertices[i].position.x != p[i].x
-			|| shape->vertices[i].position.y != p[i].y
-			|| shape->vertices[i].position.z != p[i].z){
-		
-		--pass;
+		for(j = 0; j < n; ++j){
+			if(shape->vertices[i].position.x == p[j].x
+				&& shape->vertices[i].position.y == p[j].y
+				&& shape->vertices[i].position.z == p[j].z){
+			
+				matches[i] = 1;
+			}
 		}
 	}
-	if(pass == 2) return 1;
+	for(i = 0; i < n; ++i) pass += matches[i];
+	free(matches);
+	
+	if(pass == n) return 1;
 	i = is_extrude_start(p, n, shape->child);
 	if(i) return i;
 	return is_extrude_start(p, n, shape->next);
 }
 
 int is_extrude_end(PWVec3 *p, int n, Shape *shape){
-	int i;
+	int i, j;
 	int pass = 0;
+	char *matches;
 	
 	if(!shape) return 0;
-	if(shape->type == SHAPE_EXTRUDE) ++pass;
-	if(shape->extrude.num_points == n) ++pass;
+	if(shape->type != SHAPE_EXTRUDE) return 0;
+	if(shape->extrude.num_points != n) return 0;
+	
+	matches = malloc(n);
+	memset(matches, 0, n);
 	
 	for(i = 0; i < shape->extrude.num_points; ++i){
-		if(shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.x != p[i].x
-			|| shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.y != p[i].y
-			|| shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.z != p[i].z){
-		
-		--pass;
+		for(j = 0; j < n; ++j){
+			if(shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.x == p[j].x
+				&& shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.y == p[j].y
+				&& shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.z == p[j].z){
+			
+				matches[i] = 1;
+			}
 		}
 	}
-	if(pass == 2) return 1;
+	for(i = 0; i < n; ++i) pass += matches[i];
+	free(matches);
+	
+	if(pass == n) return 1;
 	i = is_extrude_end(p, n, shape->child);
 	if(i) return i;
 	return is_extrude_end(p, n, shape->next);
@@ -414,22 +437,31 @@ int is_extrude_end(PWVec3 *p, int n, Shape *shape){
 
 Shape *get_extrude_start(PWVec3 *p, int n, Shape *shape){
 	Shape *child_shape;
-	int i;
+	int i, j;
 	int pass = 0;
+	char *matches;
 	
 	if(!shape) return NULL;
-	if(shape->type == SHAPE_EXTRUDE) ++pass;
-	if(shape->extrude.num_points == n) ++pass;
+	if(shape->type != SHAPE_EXTRUDE) return NULL;
+	if(shape->extrude.num_points != n) return NULL;
+	
+	matches = malloc(n);
+	memset(matches, 0, n);
 	
 	for(i = 0; i < shape->extrude.num_points; ++i){
-		if(shape->vertices[i].position.x != p[i].x
-			|| shape->vertices[i].position.y != p[i].y
-			|| shape->vertices[i].position.z != p[i].z){
-		
-		--pass;
+		for(j = 0; j < n; ++j){
+			if(shape->vertices[i].position.x == p[j].x
+				&& shape->vertices[i].position.y == p[j].y
+				&& shape->vertices[i].position.z == p[j].z){
+			
+				matches[i] = 1;
+			}
 		}
 	}
-	if(pass == 2) return shape;
+	for(i = 0; i < n; ++i) pass += matches[i];
+	free(matches);
+	
+	if(pass == n) return shape;
 	child_shape = get_extrude_start(p, n, shape->child);
 	if(child_shape) child_shape;
 	return get_extrude_start(p, n, shape->next);
@@ -437,22 +469,31 @@ Shape *get_extrude_start(PWVec3 *p, int n, Shape *shape){
 
 Shape *get_extrude_end(PWVec3 *p, int n, Shape *shape){
 	Shape *child_shape;
-	int i;
+	int i, j;
 	int pass = 0;
+	char *matches;
 	
 	if(!shape) return NULL;
-	if(shape->type == SHAPE_EXTRUDE) ++pass;
-	if(shape->extrude.num_points == n) ++pass;
+	if(shape->type != SHAPE_EXTRUDE) return NULL;
+	if(shape->extrude.num_points != n) return NULL;
+	
+	matches = malloc(n);
+	memset(matches, 0, n);
 	
 	for(i = 0; i < shape->extrude.num_points; ++i){
-		if(shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.x != p[i].x
-			|| shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.y != p[i].y
-			|| shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.z != p[i].z){
-		
-		--pass;
+		for(j = 0; j < n; ++j){
+			if(shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.x == p[j].x
+				&& shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.y == p[j].y
+				&& shape->vertices[i + shape->vertex_count - shape->extrude.num_points].position.z == p[j].z){
+			
+				matches[i] = 1;
+			}
 		}
 	}
-	if(pass == 2) return shape;
+	for(i = 0; i < n; ++i) pass += matches[i];
+	free(matches);
+	
+	if(pass == n) return shape;
 	child_shape = get_extrude_end(p, n, shape->child);
 	if(child_shape) child_shape;
 	return get_extrude_end(p, n, shape->next);
@@ -748,6 +789,7 @@ int handle_persp(PWEngine *engine, UI *ui){
 		}
 	}
 	
+	/*
 	if(pwengine_is_key_held(engine, "Q")){
 		ui->persp.dist *= 1.01;
 		ui->persp.pov = PWM_vec3(0, 0, ui->persp.dist);
@@ -755,6 +797,20 @@ int handle_persp(PWEngine *engine, UI *ui){
 	if(pwengine_is_key_held(engine, "E")){
 		ui->persp.dist *= 0.99;
 		ui->persp.pov = PWM_vec3(0, 0, ui->persp.dist);
+	}
+	*/
+	
+	if(pwengine_is_key_held(engine, "Left")){
+		pwpersp_add_global_rotation(&ui->persp, PWM_vec3(0, -2, 0));
+	}
+	if(pwengine_is_key_held(engine, "Right")){
+		pwpersp_add_global_rotation(&ui->persp, PWM_vec3(0, 2, 0));
+	}
+	if(pwengine_is_key_held(engine, "Up")){
+		pwpersp_add_global_rotation(&ui->persp, PWM_vec3(2, 0, 0));
+	}
+	if(pwengine_is_key_held(engine, "Down")){
+		pwpersp_add_global_rotation(&ui->persp, PWM_vec3(-2, 0, 0));
 	}
 	
 	//TODO: toggle fixed_axis with x/y/z
@@ -1088,7 +1144,6 @@ int handle_cross_section(PWEngine *engine, UI *ui){
 	}
 	
 	//position of renderable
-	printf("Position %f %f %f\r", position.x, position.y, position.z);
 	pwrenderable_transform(ui->new_vertices[ui->num_cross_section_points], PWM_translation(position));
 	
 	if(pwengine_is_left_button_pressed(engine)){
@@ -1118,6 +1173,9 @@ int handle_cross_section(PWEngine *engine, UI *ui){
 		}
 		ui->state = MODE_SELECT;
 	}
+	
+	printf("Position %f %f %f ", position.x, position.y, position.z);
+	printf("Num points: %d\r", ui->num_cross_section_points);
 	
 	pwlayer_render(&ui->layer_axes);
 	pwlayer_render(&ui->layer_new_vertices);
@@ -1186,6 +1244,7 @@ int handle_extrude_selection(PWEngine *engine, UI *ui){
 	//if enter is pressed, go to extrude mode
 	if(pwengine_is_key_pressed(engine, "Return")){
 		ui->extrude_direction = PWM_vec3(0,0,0);
+		ui->extrude_facing_out = 1;
 		for(i = 0; i < ui->num_cross_section_points - 2; ++i){
 			ui->extrude_direction = PWM_add3(PWM_cross3(PWM_sub3(ui->cross_section_points[i + 2], ui->cross_section_points[i + 1]), PWM_sub3(ui->cross_section_points[i + 1], ui->cross_section_points[i])), ui->extrude_direction);
 		}
@@ -1207,7 +1266,7 @@ int handle_extrude_selection(PWEngine *engine, UI *ui){
 	pwlayer_render(&ui->layer_axes);
 	pwlayer_render(&ui->layer_shape);
 	pwlayer_render(&ui->layer_new_vertices);
-	printf("\r");
+	printf("Num points: %d\r", ui->num_cross_section_points);
 	return 0;
 }
 
@@ -1228,7 +1287,7 @@ int handle_extrude(PWEngine *engine, UI *ui){
 	ui->extrude_length = PWM_dot3(ui->extrude_direction, PWM_sub3(PWM_mul3(PWM_add3(ui->persp.p_near, ui->persp.p_far), 0.5), extrude_origin));
 	
 	//optional, snap on nearest 1/8
-	if(pwengine_is_key_pressed(engine, "Left Ctrl")){
+	if(pwengine_is_key_held(engine, "Left Ctrl")){
 		ui->extrude_length += (ui->extrude_length > 0 ? (0.125f / 2) : (-0.125f / 2));
 		ui->extrude_length *= 8;
 		ui->extrude_length = (float)(((int)(ui->extrude_length)) / 8.0f);
@@ -1306,6 +1365,7 @@ int handle_extrude(PWEngine *engine, UI *ui){
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+1]].position, extrude_origin), normal);
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+2]].position, extrude_origin), normal);
 			}
+			if(ui->extrude_facing_out == 0) f *= -1.0f;
 			if(f < 0){
 				//reverse the indices of the shape
 				for(i = shape->index_count; i < shape->index_count + 6 * (shape->extrude.num_points - 1); i += 3){
@@ -1367,6 +1427,7 @@ int handle_extrude(PWEngine *engine, UI *ui){
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+1]].position, extrude_origin), normal);
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+2]].position, extrude_origin), normal);
 			}
+			if(ui->extrude_facing_out == 0) f *= -1.0f;
 			if(f < 0){
 				//reverse the indices of the shape
 				for(i = shape->index_count; i < shape->index_count + 6 * (shape->extrude.num_points - 1); i += 3){
@@ -1432,6 +1493,7 @@ int handle_extrude(PWEngine *engine, UI *ui){
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+1]].position, extrude_origin), normal);
 				f += PWM_dot3(PWM_sub3(shape->vertices[shape->indices[i+2]].position, extrude_origin), normal);
 			}
+			if(ui->extrude_facing_out == 0) f *= -1.0f;
 			if(f < 0){
 				//reverse the indices of the shape
 				for(i = 0; i < shape->index_count; i += 3){
