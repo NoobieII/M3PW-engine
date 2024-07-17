@@ -10,7 +10,9 @@ Image Loading
 Sound Loading (OGG Vorbis)
 TCP Client Networking
 
-Included is a sample program for editing 3D objects. The engine is a work in progress. Much of it was originally written in June 2022.
+Included are some test programs for editing 3D objects, playing sounds, and more. The engine is a work in progress. Much of it was originally written in June 2022.
+
+The compilation commands are found in the editor1.c and editor2.c files.
 
 Check out the game design document for this engine at https://drive.google.com/file/d/1Kr2dFUpHN9cRMbu158PVaX_MBrUGQgwr/view?usp=sharing
 
@@ -26,16 +28,16 @@ The following are needed if you want to build the application yourself:
   SDL2 Net
   GLEW
 
-The compilation command is found in the editor1.c and editor2.c files.
-
 Linux:
 Check your package distributor and install the following:
   libsdl2
   libsdl2-dev
   libsdl2-image-dev
   libsdl2-net-dev
+  libsdl2-ttf-dev
+  libglu1-mesa-dev
 
-Build the GLEW source code found online. It can probably be installed with the following commands:
+Build the GLEW source code found online https://glew.sourceforge.net/. It can be installed with the following commands:
   make
   sudo make install
   make clean
